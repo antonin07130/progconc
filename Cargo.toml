@@ -1,0 +1,6 @@
+[package]
+name = "progconc"
+version = "0.1.0"
+authors = ["Antonin Perrot-Audet <antonin.perrotaudet@yahoo.com>"]
+
+[dependencies]
