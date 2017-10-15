@@ -1,24 +1,48 @@
+extern crate rand;
+
 use super::YSIZE;
 use super::XSIZE;
 use super::NBEXIT;
 use super::Point;
 
 use std::fmt; // formatting for console display
-
+use self::rand::{Rng, SeedableRng, StdRng};
 
 // *******
 // TERRAIN
 // *******
+#[derive(Debug)]
 pub struct Terrain {
     data : [[isize; YSIZE]; XSIZE],
     exit_points : [Point; NBEXIT],
+    exited_cnt : usize,
 }
 
 impl Terrain {
 
     // constructor
     pub fn new()-> Terrain {
-        Terrain{ data: [[0; YSIZE]; XSIZE], exit_points : Terrain::create_exit_points() }
+        Terrain{ data: [[0; YSIZE]; XSIZE],
+        exit_points : Terrain::create_exit_points(),
+        exited_cnt : 0 }
+    }
+
+    /// Creates a sample terrain with premade obstacles
+    /// if YSIZE < 4 or XSIZE < 11 this function fails
+    pub fn new_sample() -> Terrain {
+        let mut terr = Terrain::new();
+        let large_lb = Point{x: XSIZE as isize / 10 , y: 1};
+        let lagre_rt = Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2};
+        let long_lb  = Point{x: XSIZE as isize / 10 * 3 , y: YSIZE as isize / 5};
+        let long_rt  = Point{x: XSIZE as isize / 10 * 7 , y: YSIZE as isize / 5 * 2};
+        //println!("large_lb {},  lagre_rt {} ; long_lb {}, long_rt {}", large_lb, lagre_rt, long_lb, long_rt); // debug
+        terr.add_obstacle( // large obstacle (takes lots of Y)
+            Point{x: XSIZE as isize / 10 , y: 1},
+            Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2});
+        terr.add_obstacle( // long obstacle (takes lot of X)
+            Point{x: XSIZE as isize / 10 * 2 + 2 , y: YSIZE as isize / 5},
+            Point{x: XSIZE as isize / 10 * 9 -  1 , y: YSIZE as isize / 5 + 1});
+        terr
     }
 
     // constructor helper to create the exit
@@ -40,7 +64,7 @@ impl Terrain {
         }
     }
 
-    fn count_persons_in_terrain(&self) -> isize {
+    pub fn count_persons_in_terrain(&self) -> isize {
         let mut count: isize = 0;
         for i in 0..XSIZE {
             for j in 0..YSIZE {
@@ -56,8 +80,29 @@ impl Terrain {
 
     // take the value at src, and write it at dst, reset src to 0 ("free")
     pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) {
-        self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
         self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
+        if self.exit_points.contains(dst) {
+            // todo count arrived persons
+        } else {
+            self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
+        }
+    }
+
+    pub fn get_random_free_point(&self) -> Point {
+        //let mut rng = rand::thread_rng();
+        let seed: &[_] = &[1,]; // declare random generator with constant seed to get consistant results between executions.
+        let mut rng = rand::StdRng::from_seed(seed);
+        let mut x_trial : isize = 0;
+        let mut y_trial : isize = 0;
+        let mut done = false; // mut done: bool
+
+        while !done {
+         x_trial = rng.gen_range(0, XSIZE as isize - 1);
+         y_trial = rng.gen_range(0, YSIZE as isize - 1);
+            done = self.check_valid(x_trial,y_trial);
+        };
+
+        Point{x: x_trial,y: y_trial}
     }
 
 
