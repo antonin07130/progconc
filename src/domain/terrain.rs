@@ -22,9 +22,16 @@ impl Terrain {
 
     // constructor
     pub fn new()-> Terrain {
+        let mut new_terrain =
         Terrain{ data: [[0; YSIZE]; XSIZE],
         exit_points : Terrain::create_exit_points(),
-        exited_cnt : 0 }
+        exited_cnt : 0 };
+
+        // for pt in new_terrain.exit_points.iter() {
+        //     new_terrain.set_pt(pt, -2);
+        // };
+        new_terrain
+
     }
 
     /// Creates a sample terrain with premade obstacles
@@ -48,7 +55,8 @@ impl Terrain {
     // constructor helper to create the exit
     fn create_exit_points() -> [Point; NBEXIT] {
         // top left corner
-        [   Point{x:0, y: (YSIZE as isize) - 1 },
+        [
+            Point{x:0, y: (YSIZE as isize) - 1 },
             Point{x:0, y: (YSIZE as isize) - 2 },
             Point{x:1, y: (YSIZE as isize) - 1 },
             Point{x:1, y: (YSIZE as isize) - 2 }
@@ -64,8 +72,12 @@ impl Terrain {
         }
     }
 
-    pub fn count_persons_in_terrain(&self) -> isize {
-        let mut count: isize = 0;
+    pub fn get_exited_cnt(&self) -> usize {
+        self.exited_cnt
+    }
+
+    pub fn count_persons_in_terrain(&self) -> usize {
+        let mut count: usize = 0;
         for i in 0..XSIZE {
             for j in 0..YSIZE {
                 if (self.data[i][j] != 0) &&  self.data[i][j] != -1 { count = count + 1; };
@@ -81,8 +93,8 @@ impl Terrain {
     // take the value at src, and write it at dst, reset src to 0 ("free")
     pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) {
         self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
-        if self.exit_points.contains(dst) {
-            // todo count arrived persons
+        if self.exit_points.contains(dst) { // do not change the value of exit points
+            self.exited_cnt = self.exited_cnt + 1;
         } else {
             self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
         }
