@@ -6,6 +6,7 @@ pub const YSIZE:  usize = 5;
 pub const NBEXIT: usize = 4;
 
 use std::fmt; // formatting for console display
+use std::cmp;
 
 // *****
 // POINT
@@ -22,6 +23,16 @@ impl Point {
         // but should be enough for our program.
         // we only want ordering feature : we wont compute the square root :
         ((other.x - self.x).pow(2) + (other.y - self.y).pow(2)) as f32
+    }
+}
+
+impl cmp::PartialEq for Point {
+    fn eq(&self, other: &Point) -> bool {
+        (self.x == other.x) && (self.y == other.y)
+    }
+
+    fn ne(&self, other: &Point) -> bool {
+        !self.eq(other)
     }
 }
 

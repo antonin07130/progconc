@@ -8,17 +8,25 @@ use std::cmp::Ordering::Equal;
 // ******
 // PERSON
 // ******
+#[derive(Debug)]
 pub struct Person {
-    id: isize,
+    pub id: usize,
     pub position : Point,
 }
 
 impl Person {
-    pub fn new_unplaced(id: isize) -> Person {
+
+    pub fn new_placed(terrain : &mut Terrain, id: usize, position : Point) -> Person {
+        terrain.set_pt(&position, id as isize);
+        Person {id, position}
+
+    }
+
+    pub fn new_unplaced(id: usize) -> Person {
         Person { id, position: Point { x: 0, y: 0 } }
     }
 
-    pub fn new(id : isize, position : Point) -> Person {
+    pub fn new(id : usize, position : Point) -> Person {
         Person { id, position }
     }
 
@@ -46,8 +54,9 @@ impl Person {
     }
 
     pub fn place_on_terrain(&self, terrain: &mut Terrain){
-        terrain.set_pt(&self.position, self.id);
+        terrain.set_pt(&self.position, self.id as isize);
     }
+
 
     pub fn move_to(&mut self, terrain: &mut Terrain, new_point: &Point) {
         terrain.move_src_to_dst(&self.position, new_point);
