@@ -5,6 +5,7 @@ Concurrent Programming project (http://www.i3s.unice.fr/~riveill/programmation-c
 # Prerequisites. 
 
 Install Rust language on your machine (should be packed with cargo).
+The easiest way to install Rust on Osx and Linux is [Rustup](https://www.rustup.rs/).
 
 # Run tests. 
 ```bash
