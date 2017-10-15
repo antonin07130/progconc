@@ -1,11 +1,18 @@
 pub mod domain;
+pub mod graphics;
 
 #[cfg(test)]
 mod tests {
     use domain::Point;
     use domain::terrain::Terrain;
     use domain::person::Person;
-    //println!("☠ // Concurrent escape (disaster at Cap3000) // ☠");
+    use graphics;
+
+    #[test]
+    fn test_win() {
+        graphics::create_windows();
+    }
+
 
     #[test]
     fn declare_small_terrain() {
@@ -56,7 +63,7 @@ mod tests {
     #[test]
     fn declare_sample_terrain_10_persons() {
         let mut terrain: Terrain = Terrain::new_sample();
-        let nb_persons : isize = 10;
+        let nb_persons : usize = 10;
         #[derive(Debug)]
         let mut persons : Vec<Person>= Vec::with_capacity(nb_persons as usize);
 
@@ -99,5 +106,6 @@ mod tests {
 
 
 }
+
 
 

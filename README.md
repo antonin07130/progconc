@@ -4,8 +4,27 @@ Concurrent Programming project (http://www.i3s.unice.fr/~riveill/programmation-c
 
 # Prerequisites. 
 
+## Headless compilation (no GUI)
+
 Install Rust language on your machine (should be packed with cargo).
 The easiest way to install Rust on Osx and Linux is [Rustup](https://www.rustup.rs/).
+
+## Compilation with GUI
+
+You need to have the `sdl2` developmenet libraries on your machine to be able to compile this program's GUI.
+
+ * For OSX :
+```
+brew install sdl2
+export LIBRARY_PATH="$LIBRARY_PATH:/usr/local/lib"
+```
+
+ * For Linux :
+```
+sudo apt-get install libsdl2-dev
+```
+(if you use red hat variant, you must know hhow to do that on your system, isnt'it jedi ?)
+
 
 # Run tests. 
 ```bash
