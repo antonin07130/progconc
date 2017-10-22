@@ -4,11 +4,18 @@ extern crate clap;
 extern crate log;
 extern crate env_logger;
 
+// arguments parsing
 use clap::{Arg, App};
+// domain objects
 use progconc::domain::Point;
 use progconc::domain::terrain::Terrain;
 use progconc::domain::person::Person;
+// graphic lib wrappers
 use progconc::graphics::*;
+// statistics lib wrapper
+use progconc::statistics::Rusage;
+
+
 
 fn main() {
     // Define and read command line arguments.
@@ -51,10 +58,23 @@ fn main() {
 
     env_logger::init().unwrap();
 
+    let res_before : Rusage  = Rusage::New();
+
     match scenario {
         2 => t3_algorithm(nb_pers, measure),
         _ => unimplemented!(),
     };
+
+    let res_after : Rusage = Rusage::New();
+
+    println!("Memory before : {}MB",  res_before.get_maxrss_as_MB());
+    println!("Memory after : {}MB", res_after.get_maxrss_as_MB());
+
+    println!("Memory usage : {}MB", res_after.get_maxrss_as_MB() - res_before.get_maxrss_as_MB());
+
+    loop{};
+
+
 }
 
 
@@ -94,6 +114,7 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
             pers.move_to(&mut terrain, &good_point);
             debug!("Moving to : {}", good_point);
             if pers.has_escaped {
+
                 // let's remove this person form the next computation loop
                 //persons.remove_item(pers);
             }
@@ -101,10 +122,6 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
         debug!("****** next turn ******", )
     }
 
-    for child in children {
-        // Wait for the thread to finish. Returns a result.
-        let _ = child.join();
-    }
 
 }
 
