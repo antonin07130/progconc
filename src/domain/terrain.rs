@@ -13,35 +13,32 @@ use std::vec;
 // TERRAIN
 // *******
 pub struct Terrain {
-    data : [[isize; YSIZE]; XSIZE],
+    pub xsize : usize,
+    pub ysize : usize,
+    data : Vec<isize>,
     exit_points : [Point; NBEXIT],
     exited_cnt : usize,
 }
 
 impl Terrain {
 
-    pub fn get_data_ref(&self) -> &[[isize; YSIZE]; XSIZE] {
+    pub fn get_data_ref(&self) -> &Vec<isize> {
         &self.data
     }
 
     // constructor
-    pub fn new()-> Terrain {
-        let mut new_terrain =
-        Terrain{ data: [[0; YSIZE]; XSIZE],
+    pub fn new(xsize: usize, ysize:usize)-> Terrain {
+        let data : Vec<isize> = vec![0; xsize * ysize];//Vec::with_capacity(xsize * ysize);
+
+        Terrain{ xsize, ysize, data,
         exit_points : Terrain::create_exit_points(),
-        exited_cnt : 0 };
-
-        // for pt in new_terrain.exit_points.iter() {
-        //     new_terrain.set_pt(pt, -2);
-        // };
-        new_terrain
-
+        exited_cnt : 0 }
     }
 
     /// Creates a sample terrain with premade obstacles
     /// if YSIZE < 4 or XSIZE < 11 this function fails
-    pub fn new_sample() -> Terrain {
-        let mut terr = Terrain::new();
+    pub fn new_sample(xsize: usize, ysize:usize) -> Terrain {
+        let mut terr = Terrain::new(xsize, ysize);
         let large_lb = Point{x: XSIZE as isize / 10 , y: 1};
         let lagre_rt = Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2};
         let long_lb  = Point{x: XSIZE as isize / 10 * 3 , y: YSIZE as isize / 5};
@@ -75,10 +72,11 @@ impl Terrain {
     pub fn add_obstacle(&mut self, lower_left : Point, upper_right : Point ){
         for x in lower_left.x..upper_right.x + 1 {
             for y in lower_left.y..upper_right.y + 1 {
-                self.data[x as usize][y as usize] = -1;
+                self.set_pt_val(&Point{x,y}, -1);
             }
         }
     }
+
 
     /// Returns a random point on the Terrain that is available.
     pub fn get_random_free_point(&self) -> Option<Point> {
@@ -97,10 +95,10 @@ impl Terrain {
 
         let mut avl_points : Vec<Point> = Vec::new();
 
-        for i in 0..XSIZE {
-            for j in 0..YSIZE {
-                if self.data[i][j] == 0 { avl_points.push(Point{x: i as isize, y: j as isize})};
-            }
+        for idx in 0..self.data.len() {
+            if self.data[idx] == 0 {
+                avl_points.push( self.get_point(idx));
+            };
         }
 
         let sz = avl_points.len();
@@ -117,29 +115,46 @@ impl Terrain {
 
     pub fn count_persons_in_terrain(&self) -> usize {
         let mut count: usize = 0;
-        for i in 0..XSIZE {
-            for j in 0..YSIZE {
-                if (self.data[i][j] != 0) &&  self.data[i][j] != -1 { count = count + 1; };
-            }
+        for val in self.data.as_slice() {
+            if (*val != 0) &&  *val != -1 { count = count + 1; }
         }
         count
     }
 
-    pub fn set_pt(&mut self, point: &Point, value : isize) {
-        self.data[point.x as usize][point.y as usize] = value;
+    fn get_offset(&self, point : &Point) ->usize {
+        ( self.xsize * point.y as usize ) + point.x as usize
+    }
+
+    fn get_point(&self, offset : usize) -> Point{
+        let x = (offset % self.xsize) as isize; // x coordinate is the remainder of offset / x
+        let y = (offset / self.xsize) as isize; // y coordinate is the amount of times we have been through x
+        Point{x, y}
+    }
+
+    pub fn set_pt_val(&mut self, point: &Point, value : isize) {
+        let offset = self.get_offset(point);
+        self.data[offset] = value;
+    }
+
+    pub fn get_pt_val(&self, point: &Point) -> isize {
+        let offset = self.get_offset(point);
+        self.data[offset]
     }
 
     // take the value at src, and write it at dst, reset src to 0 ("free")
     pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) -> Option<()> {
 
-        if self.data[dst.x as usize][dst.y as usize] != 0 { // Trying to move to an occupied position
+        if self.get_pt_val(dst) != 0 { // Trying to move to an occupied position
              return None // no move and early exit
         } else if self.exit_points.contains(dst) { // do not change the value of exit points
             self.exited_cnt = self.exited_cnt + 1; // realy not thread safe
         } else {
-            self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
+            let val = self.get_pt_val(src);
+            self.set_pt_val(dst,val);
+            //self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
         }
-        self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
+        self.set_pt_val(src,0);
+        //self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
         Some(()) // some  move
     }
 
@@ -169,7 +184,15 @@ impl Terrain {
     fn check_valid(&self, x_prob: isize, y_prob: isize) -> bool {
         (x_prob >= 0 && x_prob < XSIZE as isize) && // check x_prob within Terrain bounds
             (y_prob >= 0 && y_prob < YSIZE as isize) && // check y_prob within Terrain bounds
-            self.data[x_prob as usize][y_prob as usize] == 0 // check (x_pos, y_pos) is free
+            self.get_pt_val(&Point{x: x_prob, y: y_prob}) ==0
+               // .get.data[x_prob as usize][y_prob as usize] == 0 // check (x_pos, y_pos) is free
+    }
+
+
+    fn check_valid_pt(&self, prob_point : &Point) -> bool {
+        (prob_point.x >= 0 && prob_point.x < self.xsize as isize) && // check x_prob within Terrain bounds
+            (prob_point.y >= 0 && prob_point.y < self.ysize as isize) && // check y_prob within Terrain bounds
+            self.get_pt_val(prob_point) == 0 // check (x_pos, y_pos) is free
     }
 }
 
@@ -178,7 +201,7 @@ impl fmt::Display for Terrain {
         write!(f, "Terrain {{\n");
         for y in (0..YSIZE).rev() {
             for x in 0..XSIZE {
-                write!(f, "({},{})={} \t", x, y, self.data[x][y]);
+                write!(f, "({},{})={} \t", x, y, self.get_pt_val(&Point{x : x as isize, y : y as isize}));
             }
             write!(f, "\n");
         }

@@ -19,7 +19,7 @@ pub struct Person {
 impl Person {
 
     pub fn new_placed(terrain : &mut Terrain, id: usize, position : Point) -> Person {
-        terrain.set_pt(&position, id as isize);
+        terrain.set_pt_val(&position, id as isize);
         Person {id, position, has_escaped :false}
 
     }
@@ -56,12 +56,12 @@ impl Person {
     }
 
     pub fn place_on_terrain(&mut self, terrain: &mut Terrain){
-        terrain.set_pt(&self.position, self.id as isize);
+        terrain.set_pt_val(&self.position, self.id as isize);
         self.has_escaped = false;
     }
 
     pub fn remove_from_terrain(&mut self, terrain: &mut Terrain){
-        terrain.set_pt(&self.position, 0 as isize);
+        terrain.set_pt_val(&self.position, 0 as isize);
         self.has_escaped = true;
     }
 
