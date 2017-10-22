@@ -124,6 +124,8 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
     let data = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
+    assert_eq!(pixels.len(), x_size*y_size);
+
     {
         // Update the window title.
         let mut window = canvas.window_mut();
@@ -143,7 +145,6 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
     // update texture
     //canvas.set_draw_color(Color::RGBA(0,0,0,0));
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        println!("pitch = {}",pitch);
         for idx in 0..(x_size * y_size) {
             let offset = idx * 4;
             unsafe{

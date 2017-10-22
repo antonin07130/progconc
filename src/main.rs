@@ -17,7 +17,6 @@ use progconc::graphics::*;
 use progconc::statistics::Rusage;
 
 
-
 fn main() {
     // Define and read command line arguments.
     let matches = App::new("progconc")
@@ -59,19 +58,18 @@ fn main() {
 
     env_logger::init().unwrap();
 
-    let res_before : Rusage  = Rusage::New();
+    let res_before: Rusage = Rusage::New();
 
     match scenario {
         2 => t3_algorithm_with_graph(nb_pers, measure),
         _ => unimplemented!(),
     };
 
-    let res_after : Rusage = Rusage::New();
+    let res_after: Rusage = Rusage::New();
 
-    println!("Memory before : {}MB",  res_before.get_maxrss_as_MB());
+    println!("Memory before : {}MB", res_before.get_maxrss_as_MB());
     println!("Memory after : {}MB", res_after.get_maxrss_as_MB());
     println!("Memory usage : {}MB", res_after.get_maxrss_as_MB() - res_before.get_maxrss_as_MB());
-
 }
 
 
@@ -111,15 +109,12 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
             pers.move_to(&mut terrain, &good_point);
             debug!("Moving to : {}", good_point);
             if pers.has_escaped {
-
                 // let's remove this person form the next computation loop
                 //persons.remove_item(pers);
             }
         }
         debug!("****** next turn ******", )
     }
-
-
 }
 
 
@@ -171,6 +166,8 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
     let mut texture = create_texture(&text_creator, progconc::domain::XSIZE, progconc::domain::YSIZE);
     // ********* GRAPH RELATED ********
 
+    let mut start = std::time::Instant::now();
+    let deltat_render = std::time::Duration::from_millis(33);
     // start moving persons
     'running: while terrain.get_exited_cnt() < nb_pers {
         // for each person
@@ -193,24 +190,28 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
                 debug!("Moving to : {}", good_point);
 
 
-                // ********* GRAPH RELATED ********
-                // graph update
-                {
-                    //texture.with_lock(None, get_texture_upd_fn())
+                if start.elapsed().gt(&deltat_render) {
+                    // do not render more than 30 fps
+                    start = std::time::Instant::now();
+                    // ********* GRAPH RELATED ********
+                    // graph update
+                    {
+                        //texture.with_lock(None, get_texture_upd_fn())
 
-                    update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
+                        update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
+                    }
+
+                    canvas.set_draw_color(Color::RGB(0, 0, 0));
+                    canvas.clear();
+
+                    canvas.copy(&texture,
+                                None,
+                                None).unwrap();
+                    //canvas.set_draw_color(Color::RGB(0, 0, 0));
+                    canvas.present();
                 }
 
-                canvas.set_draw_color(Color::RGB(0, 0, 0));
-                canvas.clear();
-
-                canvas.copy(&texture,
-                            None,
-                            None).unwrap();
-                //canvas.set_draw_color(Color::RGB(0, 0, 0));
-                canvas.present();
-
-                if check_quit(& mut event_pump) {
+                if check_quit(&mut event_pump) {
                     break 'running;
                 }
                 // ********* GRAPH RELATED ********
