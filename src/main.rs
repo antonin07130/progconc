@@ -200,7 +200,10 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
 
                     update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
                 }
-                canvas.
+
+                canvas.set_draw_color(Color::RGB(0, 0, 0));
+                canvas.clear();
+
                 canvas.copy(&texture,
                             None,
                             None).unwrap();
