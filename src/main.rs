@@ -7,6 +7,7 @@ extern crate env_logger;
 // arguments parsing
 use clap::{Arg, App};
 // domain objects
+use progconc::domain::*;
 use progconc::domain::Point;
 use progconc::domain::terrain::Terrain;
 use progconc::domain::person::Person;
@@ -61,7 +62,7 @@ fn main() {
     let res_before : Rusage  = Rusage::New();
 
     match scenario {
-        2 => t3_algorithm(nb_pers, measure),
+        2 => t3_algorithm_with_graph(nb_pers, measure),
         _ => unimplemented!(),
     };
 
@@ -69,18 +70,14 @@ fn main() {
 
     println!("Memory before : {}MB",  res_before.get_maxrss_as_MB());
     println!("Memory after : {}MB", res_after.get_maxrss_as_MB());
-
     println!("Memory usage : {}MB", res_after.get_maxrss_as_MB() - res_before.get_maxrss_as_MB());
-
-    loop{};
-
 
 }
 
 
 fn t3_algorithm(nb_pers: usize, measure: bool) {
     // Initialize the terrain and place persons in it :
-    let mut terrain: Terrain = Terrain::new_sample();
+    let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
     #[derive(Debug)]
     let mut persons: Vec<Person> = Vec::with_capacity(nb_pers as usize);
 
@@ -141,7 +138,7 @@ use self::sdl2::render::{Canvas, Texture, TextureCreator, WindowCanvas};
 
 fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
     // Initialize the terrain and place persons in it :
-    let mut terrain: Terrain = Terrain::new_sample();
+    let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
     #[derive(Debug)]
     let mut persons: Vec<Person> = Vec::with_capacity(nb_pers as usize);
 
@@ -203,6 +200,7 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
 
                     update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
                 }
+                canvas.
                 canvas.copy(&texture,
                             None,
                             None).unwrap();

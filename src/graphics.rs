@@ -74,8 +74,8 @@ pub fn test_disp() {
 
 pub fn initialize_windows(terrain : &Terrain) -> (WindowCanvas, Vec<u8>,  TextureCreator<WindowContext> , EventPump) {
     let data_array = terrain.get_data_ref();
-    let x_size = data_array.len();
-    let y_size = data_array.first().unwrap().len();
+    let x_size = terrain.xsize;
+    let y_size = terrain.ysize;
     let mut pixels : Vec<u8> = vec![0;x_size * y_size * 4];
 
     let sdl_context = sdl2::init().unwrap();
@@ -143,8 +143,8 @@ pub fn check_quit(event_pump : &mut EventPump) -> bool{
 
 pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut WindowCanvas, texture : &mut Texture) {
     let data = terrain.get_data_ref();
-    let x_size = data.len();
-    let y_size = data.first().unwrap().len();
+    let x_size = terrain.xsize;
+    let y_size = terrain.ysize;
 //    let mut rng = rand::thread_rng();
     {
         // Update the window title.
@@ -165,15 +165,26 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
     // update texture
     //canvas.set_draw_color(Color::RGBA(0,0,0,0));
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        for x in 0..x_size {
-            for y in 0..y_size {
-                let offset = ( x_size * 4 * y ) + x * 4;
-                buffer[offset + 0] = (data[x][y]*50_isize) as u8; // b
-                buffer[offset + 1] = (data[x][y]*100_isize) as u8; // g
-                buffer[offset + 2] = data[x][y] as u8; // r
-                buffer[offset + 3] = 255_u8; // a (opaque)
+        for idx in 0..(x_size * y_size) {
+            let offset = idx * 4;
+            unsafe{
+            buffer[offset + 0] = *data.get_unchecked(idx) as u8; // b
+            buffer[offset + 1] = (data.get_unchecked(idx)*100_isize) as u8; // g
+            buffer[offset + 2] = *data.get_unchecked(idx) as u8; // r
+            buffer[offset + 3] = 255_u8; // a (opaque)
             }
         }
+
+//        for x in 0..x_size {
+//            for y in 0..y_size {
+//                let offset = ( x_size * 4 * y ) + x * 4;
+//                buffer[offset + 0] = (data[x][y]*50_isize) as u8; // b
+//                buffer[offset + 1] = (data[x][y]*100_isize) as u8; // g
+//                buffer[offset + 2] = data[x][y] as u8; // r
+//                buffer[offset + 3] = 255_u8; // a (opaque)
+//            }
+//        }
+
 //        // graph running indicator (changes color at each frame)
 //        buffer[0] = rng.next_u32() as u8; // b
 //        buffer[1] = rng.next_u32()  as u8; // g
@@ -192,8 +203,8 @@ pub fn graph_loop(terrain: &Terrain){
         mut event_pump) = initialize_windows(terrain);
 
     let data_array = terrain.get_data_ref();
-    let x_size = data_array.len();
-    let y_size = data_array.first().unwrap().len();
+    let x_size = terrain.xsize;
+    let y_size = terrain.ysize;
 
     let mut texture = create_texture(&text_creator, x_size, y_size);
 
