@@ -70,13 +70,13 @@ pub fn test_disp() {
 }
 
 
-
-
 pub fn initialize_windows(terrain : &Terrain) -> (WindowCanvas, Vec<u8>,  TextureCreator<WindowContext> , EventPump) {
     let data_array = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
-    let mut pixels : Vec<u8> = vec![0;x_size * y_size * 3];
+    let num_px = sdl2::pixels::PixelFormatEnum::ARGB8888.byte_size_of_pixels(x_size * y_size);
+
+    let mut pixels : Vec<u8> = vec![0; num_px];
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -95,8 +95,6 @@ pub fn initialize_windows(terrain : &Terrain) -> (WindowCanvas, Vec<u8>,  Textur
 
     let mut text_creator: TextureCreator<WindowContext> = canvas.texture_creator();
 
-    //texture.alpha_mod();
-    //let texture = graphics::sdl2::render::Texture;
     return (canvas, pixels, text_creator, event_pump)
 }
 
@@ -124,7 +122,8 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
     let data = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
-    assert_eq!(pixels.len(), x_size*y_size);
+    let num_px = sdl2::pixels::PixelFormatEnum::ARGB8888.byte_size_of_pixels(x_size * y_size);
+    assert_eq!(pixels.len() as usize, num_px);
 
     {
         // Update the window title.
@@ -143,7 +142,6 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
 
     // -----
     // update texture
-    //canvas.set_draw_color(Color::RGBA(0,0,0,0));
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
         for idx in 0..(x_size * y_size) {
             let offset = idx * 4;
@@ -154,22 +152,6 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
             buffer[offset + 3] = 255_u8; // a (opaque)
             }
         }
-
-//        for x in 0..x_size {
-//            for y in 0..y_size {
-//                let offset = ( x_size * 4 * y ) + x * 4;
-//                buffer[offset + 0] = (data[x][y]*50_isize) as u8; // b
-//                buffer[offset + 1] = (data[x][y]*100_isize) as u8; // g
-//                buffer[offset + 2] = data[x][y] as u8; // r
-//                buffer[offset + 3] = 255_u8; // a (opaque)
-//            }
-//        }
-
-//        // graph running indicator (changes color at each frame)
-//        buffer[0] = rng.next_u32() as u8; // b
-//        buffer[1] = rng.next_u32()  as u8; // g
-//        buffer[2] = rng.next_u32()  as u8; // r
-//        buffer[3] = 255_u8; // a
     });
 }
 
