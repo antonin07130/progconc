@@ -83,15 +83,7 @@ impl Terrain {
         //let mut rng = rand::thread_rng();
         let seed: &[_] = &[1,]; // declare random generator with constant seed to get consistant results between executions.
         let mut rng = rand::StdRng::from_seed(seed);
-//        let mut x_trial : isize = 0;
-//        let mut y_trial : isize = 0;
-//        let mut done = false; // mut done: bool
-//
-//        while !done {
-//            x_trial = rng.gen_range(0, XSIZE as isize - 1);
-//            y_trial = rng.gen_range(0, YSIZE as isize - 1);
-//            done = self.check_valid(x_trial,y_trial);
-//        };
+
 
         let mut avl_points : Vec<Point> = Vec::new();
 
@@ -113,6 +105,7 @@ impl Terrain {
         self.exited_cnt
     }
 
+    /// non thread safe count of persons in the terrain.
     pub fn count_persons_in_terrain(&self) -> usize {
         let mut count: usize = 0;
         for val in self.data.as_slice() {
@@ -141,7 +134,8 @@ impl Terrain {
         self.data[offset]
     }
 
-    // take the value at src, and write it at dst, reset src to 0 ("free")
+    /// take the value at src, and write it at dst, reset src to 0 ("free")
+    /// we shall make this function thread safe : no 2 moves at the same time
     pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) -> Option<()> {
 
         if self.get_pt_val(dst) != 0 { // Trying to move to an occupied position
@@ -159,11 +153,10 @@ impl Terrain {
     }
 
 
-
-
-    // list possible moves around a certain Point
+    /// list possible moves in the neighborhood of a certain Point
+    /// Caution : this function is only valid if no move happens in the neighborhood while reading
     pub fn list_possible_moves(&self, center: &Point) -> Vec<Point> {
-        let mut result: Vec<Point> = Vec::new();
+        let mut result: Vec<Point> = Vec::with_capacity(8);
 
         // check all neighboors
         for x_prob in (center.x - 1)..(center.x + 2) {

@@ -79,6 +79,26 @@ impl Person {
         self.position.y = new_point.y;
         }
     }
+
+
+    /// This function encapulates a complete move for a person :
+    /// from looking around to actually moving to another place
+    /// (and mutating the Person and the Terrain).
+    pub fn look_and_move(&mut self, terrain : &mut Terrain) {
+        debug!("Dealing with : {}", self);
+
+        // look around
+        let moves = terrain.list_possible_moves(&self.position);
+
+        // select the best point (hope that no-one took it while thinking)
+        debug!("Possible moves : {:?}", moves);
+        #[derive(Debug)]
+        let good_point = self.choose_best_move(&moves);
+
+        // move to the best point
+        debug!("Moving to : {}", good_point);
+        self.move_to(terrain, &good_point);
+    }
 }
 
 impl cmp::PartialEq for Person {

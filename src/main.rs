@@ -74,15 +74,19 @@ fn main() {
 
 
 fn t3_algorithm(nb_pers: usize, measure: bool) {
+
+    // ********* INITIALIZATION ********
+
     // Initialize the terrain and place persons in it :
     let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
     #[derive(Debug)]
     let mut persons: Vec<Person> = Vec::with_capacity(nb_pers as usize);
 
+
+
     for i in 1..nb_pers + 1 {
         let pt: Point = terrain.get_random_free_point()
             .expect("Not enough fee positions on the Terrain for all Persons");
-
         let mut new_pers = Person::new(i * 100, pt);
         new_pers.place_on_terrain(&mut terrain);
         //terrain.set_pt(&new_pers.position, new_pers.id as isize); // occupy }
@@ -94,23 +98,15 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
     assert_eq!(terrain.count_persons_in_terrain(), nb_pers);
     debug!("persons array : {:?}", persons);
 
+
+    // ********* MAIN LOOP ********
+
     // start moving persons
     while (terrain.get_exited_cnt() < nb_pers) {
         // for each person
         for pers in persons.as_mut_slice() {
-            // select move
-            let moves: Vec<Point>;
-            debug!("Dealing with : {}", &pers);
-            moves = terrain.list_possible_moves(&pers.position);
-            debug!("Possible moves : {:?}", moves);
-            #[derive(Debug)]
-            let good_point = pers.choose_best_move(&moves);
-            // move
-            pers.move_to(&mut terrain, &good_point);
-            debug!("Moving to : {}", good_point);
-            if pers.has_escaped {
-                // let's remove this person form the next computation loop
-                //persons.remove_item(pers);
+            if !pers.has_escaped {
+                pers.look_and_move(&mut terrain);
             }
         }
         debug!("****** next turn ******", )
@@ -120,18 +116,16 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
 
 extern crate sdl2;
 
-use self::sdl2::rect::Rect;
-use self::sdl2::pixels::Color;
 use self::sdl2::EventPump;
-use self::sdl2::event::Event;
-use self::sdl2::mouse::MouseButton;
-use self::sdl2::keyboard::Keycode;
-use self::sdl2::VideoSubsystem;
+use self::sdl2::pixels::Color;
 use self::sdl2::video::{Window, WindowContext};
 use self::sdl2::render::{Canvas, Texture, TextureCreator, WindowCanvas};
 
 
 fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
+
+    // ********* INITIALIZATION ********
+
     // Initialize the terrain and place persons in it :
     let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
     #[derive(Debug)]
@@ -164,50 +158,34 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
         mut event_pump) = initialize_windows(&terrain);
 
     let mut texture = create_texture(&text_creator, progconc::domain::XSIZE, progconc::domain::YSIZE);
-    // ********* GRAPH RELATED ********
 
     let mut start = std::time::Instant::now();
     let deltat_render = std::time::Duration::from_millis(33);
+    // ********* GRAPH RELATED ********
+
+
+    // ********* MAIN LOOP ********
+
     // start moving persons
     'running: while terrain.get_exited_cnt() < nb_pers {
         // for each person
         for pers in persons.as_mut_slice() {
             if !pers.has_escaped {
+
+                pers.look_and_move(&mut terrain);
+
                 // ********* GRAPH RELATED ********
-                //canvas.clear();
-                // ********* GRAPH RELATED ********
-
-                // select move
-                let moves: Vec<Point>;
-                debug!("Dealing with : {}", &pers);
-                moves = terrain.list_possible_moves(&pers.position);
-                debug!("Possible moves : {:?}", moves);
-                #[derive(Debug)]
-                let good_point = pers.choose_best_move(&moves);
-                // move
-                pers.move_to(&mut terrain, &good_point);
-
-                debug!("Moving to : {}", good_point);
-
-
                 if start.elapsed().gt(&deltat_render) {
                     // do not render more than 30 fps
                     start = std::time::Instant::now();
-                    // ********* GRAPH RELATED ********
                     // graph update
-                    {
-                        //texture.with_lock(None, get_texture_upd_fn())
-
-                        update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
-                    }
+                    update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
 
                     canvas.set_draw_color(Color::RGB(0, 0, 0));
                     canvas.clear();
-
                     canvas.copy(&texture,
                                 None,
                                 None).unwrap();
-                    //canvas.set_draw_color(Color::RGB(0, 0, 0));
                     canvas.present();
                 }
 
@@ -217,15 +195,10 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
                 // ********* GRAPH RELATED ********
             }
         }
-
-        debug!("****** next turn ****** excited : {}", terrain.get_exited_cnt());
+        debug!("****** next turn ******  {} have left the Terrain", terrain.get_exited_cnt());
     }
 
     println!("Final terrain \n {}", terrain);
-
-    //-----
-    //graph_loop(&terrain);
-    //------
 }
 
 
