@@ -76,18 +76,20 @@ pub fn initialize_windows(terrain : &Terrain) -> (WindowCanvas, Vec<u8>,  Textur
     let data_array = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
-    let mut pixels : Vec<u8> = vec![0;x_size * y_size * 4];
+    let mut pixels : Vec<u8> = vec![0;x_size * y_size * 3];
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
 
     let window: Window = video_subsystem
         .window("rust-sdl2 demo: Window", 800, 600)
-        .resizable()
+        .opengl()
+       // .resizable()
         .build()
         .unwrap();
 
-    let mut canvas: WindowCanvas = window.into_canvas().present_vsync().build().unwrap();
+    let mut canvas: WindowCanvas = window.into_canvas().accelerated().build().unwrap();
+    println!("Using SDL_Renderer \"{}\"", canvas.info().name);
     let mut tick = 0;
     let mut event_pump = sdl_context.event_pump().unwrap();
 
@@ -116,36 +118,12 @@ pub fn check_quit(event_pump : &mut EventPump) -> bool{
     false
 }
 
-//
-//
-//pub fn get_texture_upd_fn( data : &[&[isize]], x_size : usize, ysize : usize) -> FnOnce {
-//    let mut rng = rand::thread_rng();
-//
-//    let fct = |buffer: &mut [u8], pitch: usize| {
-//        for x in 0..x_size {
-//            for y in 0..y_size {
-//                let offset = ( x_size * 4 * y ) + x * 4;
-//                buffer[offset + 0] = (data[x][y]*50_isize) as u8; // b
-//                buffer[offset + 1] = (data[x][y]*100_isize) as u8; // g
-//                buffer[offset + 2] = data[x][y] as u8; // r
-//                buffer[offset + 3] = 255_u8; // a (opaque)
-//            }
-//        }
-//        // graph running indicator (changes color at each frame)
-//        buffer[0] = rng.next_u32() as u8; // b
-//        buffer[1] = rng.next_u32()  as u8; // g
-//        buffer[2] = rng.next_u32()  as u8; // r
-//        buffer[3] = 255_u8; // a
-//    };
-//    return fct;
-//}
 
 
 pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut WindowCanvas, texture : &mut Texture) {
     let data = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
-//    let mut rng = rand::thread_rng();
     {
         // Update the window title.
         let mut window = canvas.window_mut();
@@ -165,11 +143,12 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
     // update texture
     //canvas.set_draw_color(Color::RGBA(0,0,0,0));
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+        println!("pitch = {}",pitch);
         for idx in 0..(x_size * y_size) {
             let offset = idx * 4;
             unsafe{
             buffer[offset + 0] = *data.get_unchecked(idx) as u8; // b
-            buffer[offset + 1] = (data.get_unchecked(idx)*100_isize) as u8; // g
+            buffer[offset + 1] = *data.get_unchecked(idx) as u8;//(data.get_unchecked(idx)*100_isize) as u8; // g
             buffer[offset + 2] = *data.get_unchecked(idx) as u8; // r
             buffer[offset + 3] = 255_u8; // a (opaque)
             }
@@ -226,7 +205,7 @@ pub fn graph_loop(terrain: &Terrain){
                     None,
                     None).unwrap();
 
-        //canvas.set_draw_color(Color::RGB(0, 0, 0));
+        canvas.set_draw_color(Color::RGB(0, 0, 0));
         //canvas.clear();
         canvas.present();
     }
