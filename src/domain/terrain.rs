@@ -7,11 +7,11 @@ use super::Point;
 
 use std::fmt; // formatting for console display
 use self::rand::{Rng, SeedableRng, StdRng};
+use std::vec;
 
 // *******
 // TERRAIN
 // *******
-#[derive(Debug)]
 pub struct Terrain {
     data : [[isize; YSIZE]; XSIZE],
     exit_points : [Point; NBEXIT],
@@ -19,6 +19,10 @@ pub struct Terrain {
 }
 
 impl Terrain {
+
+    pub fn get_data_ref(&self) -> &[[isize; YSIZE]; XSIZE] {
+        &self.data
+    }
 
     // constructor
     pub fn new()-> Terrain {
@@ -63,12 +67,47 @@ impl Terrain {
         ]
     }
 
+    pub fn get_exit_points(&self) -> &[Point; NBEXIT] {
+        &self.exit_points
+    }
+
     // add rectangular obstacles in the terrain. Poisitions are occupied by -1 values
     pub fn add_obstacle(&mut self, lower_left : Point, upper_right : Point ){
         for x in lower_left.x..upper_right.x + 1 {
             for y in lower_left.y..upper_right.y + 1 {
                 self.data[x as usize][y as usize] = -1;
             }
+        }
+    }
+
+    /// Returns a random point on the Terrain that is available.
+    pub fn get_random_free_point(&self) -> Option<Point> {
+        //let mut rng = rand::thread_rng();
+        let seed: &[_] = &[1,]; // declare random generator with constant seed to get consistant results between executions.
+        let mut rng = rand::StdRng::from_seed(seed);
+//        let mut x_trial : isize = 0;
+//        let mut y_trial : isize = 0;
+//        let mut done = false; // mut done: bool
+//
+//        while !done {
+//            x_trial = rng.gen_range(0, XSIZE as isize - 1);
+//            y_trial = rng.gen_range(0, YSIZE as isize - 1);
+//            done = self.check_valid(x_trial,y_trial);
+//        };
+
+        let mut avl_points : Vec<Point> = Vec::new();
+
+        for i in 0..XSIZE {
+            for j in 0..YSIZE {
+                if self.data[i][j] == 0 { avl_points.push(Point{x: i as isize, y: j as isize})};
+            }
+        }
+
+        let sz = avl_points.len();
+        if sz > 0 { // free positions remaining
+            Some(avl_points.remove(rng.gen_range(0,sz)))
+        } else { // no free position remaining
+            None
         }
     }
 
@@ -91,31 +130,20 @@ impl Terrain {
     }
 
     // take the value at src, and write it at dst, reset src to 0 ("free")
-    pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) {
-        self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
-        if self.exit_points.contains(dst) { // do not change the value of exit points
-            self.exited_cnt = self.exited_cnt + 1;
+    pub fn move_src_to_dst(&mut self, src : &Point, dst : &Point) -> Option<()> {
+
+        if self.data[dst.x as usize][dst.y as usize] != 0 { // Trying to move to an occupied position
+             return None // no move and early exit
+        } else if self.exit_points.contains(dst) { // do not change the value of exit points
+            self.exited_cnt = self.exited_cnt + 1; // realy not thread safe
         } else {
             self.data[dst.x as usize][dst.y as usize] = self.data[src.x as usize][src.y as usize];
         }
+        self.data[src.x as usize][src.y as usize] = 0; // "free" occupied point
+        Some(()) // some  move
     }
 
-    pub fn get_random_free_point(&self) -> Point {
-        //let mut rng = rand::thread_rng();
-        let seed: &[_] = &[1,]; // declare random generator with constant seed to get consistant results between executions.
-        let mut rng = rand::StdRng::from_seed(seed);
-        let mut x_trial : isize = 0;
-        let mut y_trial : isize = 0;
-        let mut done = false; // mut done: bool
 
-        while !done {
-         x_trial = rng.gen_range(0, XSIZE as isize - 1);
-         y_trial = rng.gen_range(0, YSIZE as isize - 1);
-            done = self.check_valid(x_trial,y_trial);
-        };
-
-        Point{x: x_trial,y: y_trial}
-    }
 
 
     // list possible moves around a certain Point

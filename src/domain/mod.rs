@@ -1,8 +1,8 @@
 pub mod terrain;
 pub mod person;
 
-pub const XSIZE:  usize = 10;
-pub const YSIZE:  usize = 5;
+pub const XSIZE:  usize = 512;
+pub const YSIZE:  usize = 128;
 pub const NBEXIT: usize = 4;
 
 use std::fmt; // formatting for console display
@@ -11,7 +11,7 @@ use std::cmp;
 // *****
 // POINT
 // *****
-#[derive(Debug)] // for debugging printing purpose
+#[derive(Debug, Copy, Clone)]
 pub struct Point {
     pub x : isize,
     pub y : isize

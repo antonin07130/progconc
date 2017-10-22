@@ -1,3 +1,6 @@
+#[macro_use]
+extern crate log;
+
 pub mod domain;
 pub mod graphics;
 
@@ -10,7 +13,7 @@ mod tests {
 
     #[test]
     fn test_win() {
-        graphics::create_windows();
+        graphics::test_disp();
     }
 
 
