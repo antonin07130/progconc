@@ -14,11 +14,20 @@ use progconc::domain::person::Person;
 // graphic lib wrappers
 use progconc::graphics::*;
 // statistics lib wrapper
-use progconc::statistics::Rusage;
+use progconc::statistics;
+
+// thread and sync primitives
+use std::sync::{Mutex, Arc};
+use std::thread;
+use std::time;
+use std::sync::mpsc;
 
 
 fn main() {
-    // Define and read command line arguments.
+    // logger
+    env_logger::init().unwrap();
+
+    // parse arguments
     let matches = App::new("progconc")
         .version("0.0.1")
         .author("Antonin Perrot-Audet <antonin.perrotaudet@yahoo.com>")
@@ -37,39 +46,48 @@ fn main() {
             .short("m")
             .long("measure")
             .help("turns on performance measurement for the selected scenario"))
-        //        .arg(Arg::with_name("debug")
-        //            .short("d")
-        //            .long("debug")
-        //            .help("turns on verbose debug on standard output (very slow)"))
         .get_matches();
 
     let pow_pers: usize = matches.value_of("pow_pers").map(|n| n.parse::<usize>().unwrap())
         .unwrap_or(6_usize);
     let scenario: usize = matches.value_of("scenario").map(|n| n.parse::<usize>()
         .unwrap()).unwrap_or(2_usize);
-    let measure: bool = matches.value_of("measure").map(|n| n.parse::<bool>()
-        .unwrap()).unwrap_or(false);
-    //    let debug     : bool  = matches.value_of("debug").map(|n| n.parse::<bool>()
-    //        .unwrap()).unwrap_or(false);
+    let measure: bool = matches.is_present("measure");
 
     let nb_pers: usize = (2_usize).pow(pow_pers as u32);
     println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
 
-    env_logger::init().unwrap();
+    // measure
+    let measure_before: Option<statistics::PerfMeasure> = if measure {
+        Some(statistics::PerfMeasure::New())
+    } else {
+        None
+    };
 
-    let res_before: Rusage = Rusage::New();
 
     match scenario {
+        0 => t1_algorithm_with_graph(nb_pers, measure),
         2 => t3_algorithm_with_graph(nb_pers, measure),
         _ => unimplemented!(),
     };
 
-    let res_after: Rusage = Rusage::New();
 
-    println!("Memory before : {}MB", res_before.get_maxrss_as_MB());
-    println!("Memory after : {}MB", res_after.get_maxrss_as_MB());
-    println!("Memory usage : {}MB", res_after.get_maxrss_as_MB() - res_before.get_maxrss_as_MB());
+    // measure
+    let measure_after: Option<statistics::PerfMeasure> = if measure {
+        Some(statistics::PerfMeasure::New())
+    } else {
+        None
+    };
+
+    if let  (Some(mb), Some(ma)) = (measure_before, measure_after) {
+        println!("Memory before : {}MB", mb.get_maxrss_as_MB());
+        println!("Memory after : {}MB", ma.get_maxrss_as_MB());
+        println!("Memory usage : {}MB", ma.get_maxrss_as_MB() - mb.get_maxrss_as_MB());
+        println!("Clock before : {}", mb.clock_t);
+        println!("Clock after : {}", ma.clock_t);
+        println!("Clock ticks : {}", ma.clock_t - mb.clock_t);
+    }
 }
 
 
@@ -84,6 +102,7 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
 
 
 
+    // ********* ALGORITHM ********
     for i in 1..nb_pers + 1 {
         let pt: Point = terrain.get_random_free_point()
             .expect("Not enough fee positions on the Terrain for all Persons");
@@ -100,7 +119,6 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
 
 
     // ********* MAIN LOOP ********
-
     // start moving persons
     while (terrain.get_exited_cnt() < nb_pers) {
         // for each person
@@ -114,93 +132,107 @@ fn t3_algorithm(nb_pers: usize, measure: bool) {
 }
 
 
-extern crate sdl2;
-
-use self::sdl2::EventPump;
-use self::sdl2::pixels::Color;
-use self::sdl2::video::{Window, WindowContext};
-use self::sdl2::render::{Canvas, Texture, TextureCreator, WindowCanvas};
-
 
 fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) {
 
     // ********* INITIALIZATION ********
-
     // Initialize the terrain and place persons in it :
     let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
     #[derive(Debug)]
     let mut persons: Vec<Person> = Vec::with_capacity(nb_pers as usize);
 
-    for i in 1..nb_pers + 1 {
-        let pt: Point = terrain.get_random_free_point()
-            .expect("Not enough fee positions on the Terrain for all Persons");
-
-        let mut new_pers = Person::new(i * 100, pt);
-        new_pers.place_on_terrain(&mut terrain);
-        //terrain.set_pt(&new_pers.position, new_pers.id as isize); // occupy }
-        debug!("placing : {}", &new_pers);
-        persons.push(new_pers);
-    }
-    println!(" pers in terrain : {}", terrain.count_persons_in_terrain());
-    debug!(" expected pers in terrain : {}", nb_pers);
-    assert_eq!(terrain.count_persons_in_terrain(), nb_pers);
-    debug!("persons array : {:?}", persons);
-
-    println!("Initial terrain \n {}", terrain);
-
+    let protected_terrain = Arc::new(Mutex::new(terrain));
+    let (stop_graph_tx, stop_graph_rx) = mpsc::channel();
 
     // ********* GRAPH RELATED ********
-    //initialize graphs
-    let (mut canvas,
-        mut pixels,
-        // mut texture,
-        mut text_creator,
-        mut event_pump) = initialize_windows(&terrain);
-
-    let mut texture = create_texture(&text_creator, progconc::domain::XSIZE, progconc::domain::YSIZE);
-
-    let mut start = std::time::Instant::now();
-    let deltat_render = std::time::Duration::from_millis(33);
+    let pterrain = protected_terrain.clone();
+    let graph_handle = spawn_graph_thread(pterrain, nb_pers);//, stop_graph_rx);
     // ********* GRAPH RELATED ********
-
 
     // ********* MAIN LOOP ********
-
     // start moving persons
-    'running: while terrain.get_exited_cnt() < nb_pers {
+    'running: while protected_terrain.lock().unwrap().get_exited_cnt() < nb_pers {
         // for each person
         for pers in persons.as_mut_slice() {
             if !pers.has_escaped {
-
-                pers.look_and_move(&mut terrain);
-
-                // ********* GRAPH RELATED ********
-                if start.elapsed().gt(&deltat_render) {
-                    // do not render more than 30 fps
-                    start = std::time::Instant::now();
-                    // graph update
-                    update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
-
-                    canvas.set_draw_color(Color::RGB(0, 0, 0));
-                    canvas.clear();
-                    canvas.copy(&texture,
-                                None,
-                                None).unwrap();
-                    canvas.present();
-                }
-
-                if check_quit(&mut event_pump) {
-                    break 'running;
-                }
-                // ********* GRAPH RELATED ********
+                pers.look_and_move(&mut protected_terrain.lock().unwrap());
             }
         }
-        debug!("****** next turn ******  {} have left the Terrain", terrain.get_exited_cnt());
+        debug!("****** next turn ******  {} have left the Terrain", protected_terrain.lock().unwrap().get_exited_cnt());
     }
 
-    println!("Final terrain \n {}", terrain);
+    stop_graph_tx.send(()); // kill graph thread
+
+    graph_handle.join().unwrap();
 }
 
+
+
+
+
+fn t1_algorithm_with_graph(nb_pers: usize, measure: bool) {
+
+    // Initialization :
+    let (mut terrain,
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+    //println!("Initial terrain \n {}", terrain);
+
+    // move Terrain to the mutex protected reference counted pointer
+    let protected_terrain = Arc::new(Mutex::new(terrain));
+    // Thread related :
+    let mut handles = vec![];
+    let (stop_graph_tx, stop_graph_rx) = mpsc::channel();
+
+
+    let (mut tx, rx) = mpsc::channel();
+
+    // create one thread per person
+    while let Some(mut pers) = persons.pop() {
+
+        let pterrain = protected_terrain.clone();
+        let tx = tx.clone();
+        // Threads declaration :
+        let handle = thread::spawn(move || {
+            while !pers.has_escaped {
+                { // whole terrain is blocked
+                    let mut terrain = pterrain.lock().unwrap();
+                    pers.look_and_move(&mut terrain);
+                } // locked mutex goes out of scope : terrain is availabe again
+                //thread::sleep(time::Duration::from_millis(100));
+            }
+            debug!("I escaped : {}", pers.id);
+            tx.send(pers.id);
+        });
+        handles.push(handle);
+    };
+
+    {
+        tx;
+    }
+
+
+    // ********* GRAPH RELATED ********
+    let pterrain = protected_terrain.clone();
+    let graph_handle = spawn_graph_thread(pterrain, nb_pers);//, stop_graph_rx);
+    handles.push(graph_handle);
+    // ********* GRAPH RELATED ********
+
+    let mut count = 0;
+    for received in rx {
+        debug!("Person {} has escaped !", received);
+        count = count + 1;
+        if count == nb_pers { // stop the graph thread
+            println!("stop graph");
+            stop_graph_tx.send(());
+        }
+    };
+    println!("{} have finally escaped", count);
+
+
+    for handle in handles {
+        handle.join().unwrap();
+    };
+}
 
 
 

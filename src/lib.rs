@@ -22,13 +22,6 @@ mod tests {
         println!("Testing user time measure {:?}", new_measure.utime);
     }
 
-
-    #[test]
-    fn test_win() {
-       // graphics::test_disp();
-    }
-
-
     #[test]
     fn declare_small_terrain() {
         let terrain: Terrain = Terrain::new(XSIZE, YSIZE);//[[0; YSIZE]; XSIZE];

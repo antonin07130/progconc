@@ -141,7 +141,8 @@ impl Terrain {
         if self.get_pt_val(dst) != 0 { // Trying to move to an occupied position
              return None // no move and early exit
         } else if self.exit_points.contains(dst) { // do not change the value of exit points
-            self.exited_cnt = self.exited_cnt + 1; // realy not thread safe
+            self.exited_cnt = self.exited_cnt + 1;
+            debug!("terrain exits :{}", self.exited_cnt );
         } else {
             let val = self.get_pt_val(src);
             self.set_pt_val(dst,val);
