@@ -16,7 +16,7 @@ mod tests {
 
     #[test]
     fn test_stats() {
-        let new_measure = statistics::Rusage::New();
+        let new_measure = statistics::PerfMeasure::New();
         println!("Testing memory usage measure {}MB", new_measure.get_maxrss_as_MB());
         println!("Testing system time measure {:?}", new_measure.stime);
         println!("Testing user time measure {:?}", new_measure.utime);

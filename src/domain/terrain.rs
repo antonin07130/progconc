@@ -164,9 +164,9 @@ impl Terrain {
             for y_prob in (center.y - 1)..(center.y + 2) {
                 if self.check_valid(x_prob, y_prob) {
                     result.push(Point{x: x_prob, y: y_prob});
-                    //println!("({},{}) is valid", x_prob, y_prob);
+                    debug!("({},{}) is valid", x_prob, y_prob);
                 } else {
-                    //println!("({},{}) is not valid", x_prob, y_prob);
+                    debug!("({},{}) is not valid", x_prob, y_prob);
                 }
             }
         }

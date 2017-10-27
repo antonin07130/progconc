@@ -242,13 +242,7 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
 
             //            // ********* GRAPH RELATED ********
             if start.elapsed().gt(&deltat_render) {
-                debug!("from grph exited : {}", exited_count);
-
-                // kill switch (check here to prevent blocking in noop loops)
-//                if !stop_rx.try_iter().next().is_none() {
-//                    println!("stopping me");
-//                    break 'running;
-//                }
+                //debug!("from grph exited : {}", exited_count);
 
                 // do not render more than 30 fps
                 start = Instant::now();
@@ -256,7 +250,7 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
                     // graph update
                     let terrain = pterrain.lock().unwrap();
                     update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
-                    exited_count = terrain.get_exited_cnt();
+                    exited_count = terrain.get_exited_cnt().clone();
                 }
                 canvas.set_draw_color(Color::RGB(0, 0, 0));
                 canvas.clear();
@@ -266,7 +260,7 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
             }
             canvas.present();
 
-
+// bug opened at rust sdl github : https://github.com/Rust-SDL2/rust-sdl2/issues/716
 //            if check_quit(&mut event_pump){
 //                break 'running;
 //            }

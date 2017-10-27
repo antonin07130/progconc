@@ -70,7 +70,7 @@ impl Person {
         if self.has_escaped == true {
         } else if terrain.get_exit_points().contains(new_point) {
             terrain.move_src_to_dst(&self.position, new_point); // should just increase exit counts
-            debug!("ESCAPPPEEEE");
+            //println!("I escaped : {}", self.id);
             self.has_escaped = true;
             self.remove_from_terrain(terrain);
         } else {
@@ -85,19 +85,23 @@ impl Person {
     /// from looking around to actually moving to another place
     /// (and mutating the Person and the Terrain).
     pub fn look_and_move(&mut self, terrain : &mut Terrain) {
-        debug!("Dealing with : {}", self);
+        //println!("Dealing with : {}", self);
 
         // look around
         let moves = terrain.list_possible_moves(&self.position);
 
         // select the best point (hope that no-one took it while thinking)
-        debug!("Possible moves : {:?}", moves);
+        //println!("Possible moves : {:?}", moves);
         #[derive(Debug)]
         let good_point = self.choose_best_move(&moves);
 
         // move to the best point
-        debug!("Moving to : {}", good_point);
-        self.move_to(terrain, &good_point);
+        if good_point != self.position {
+            //println!("Moving to : {}", good_point);
+            self.move_to(terrain, &good_point);
+        } else {
+            //println!("I, {}  am staying here : {}", self.id, good_point);
+        }
     }
 }
 
