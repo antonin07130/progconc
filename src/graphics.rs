@@ -41,7 +41,6 @@ pub fn test_disp() {
 
     let mut canvas = window.into_canvas().present_vsync().build().unwrap();
 
-
     let mut tick = 0;
 
     let now = Instant::now();
@@ -288,39 +287,41 @@ mod tests {
     use std::thread;
     use std::thread::JoinHandle;
 
-    #[test]
-    fn test_event_loop_thread() {
-
-        let graph_handle = thread::spawn(move || {
-            let sdl_context = sdl2::init().unwrap();
-            let mut event_pump = sdl_context.event_pump().expect("my event pump !");
-
-            let video_subsystem = sdl_context.video().unwrap();
-
-            let window: Window = video_subsystem
-                .window("rust-sdl2 demo: Window", 800, 600)
-                //.opengl()
-                .resizable()
-                .build()
-                .unwrap();
-
-            let mut canvas: WindowCanvas = window.into_canvas().accelerated().build().unwrap();
-
-            'myloop: loop {
-                canvas.present();
-
-                for event in event_pump.poll_iter() {
-                    match event {
-                        Event::Quit { .. } |
-                        Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'myloop,
-                        _ => (),
-                    };
-                };
-            }
-        });
-
-        graph_handle.join();
-    }
+// Not possible as : https://wiki.libsdl.org/CategoryThread
+//    #[test]
+//    fn test_failing_event_loop_thread() {
+//
+//        let graph_handle = thread::spawn(move || {
+//            let sdl_context = sdl2::init().unwrap();
+//            let mut event_pump = sdl_context.event_pump().expect("my event pump !");
+//
+//            let video_subsystem = sdl_context.video().unwrap();
+//
+//            let window: Window = video_subsystem
+//                .window("rust-sdl2 demo: Window", 800, 600)
+//                //.opengl()
+//                .resizable()
+//                .build()
+//                .unwrap();
+//
+//            let mut canvas: WindowCanvas = window.into_canvas().accelerated().build().unwrap();
+//
+//            'myloop: loop {
+//                canvas.present();
+//
+//                // This is the part that has a safety issue when ran from a thread other than main.
+//                for event in event_pump.poll_iter() {
+//                    match event {
+//                        Event::Quit { .. } |
+//                        Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'myloop,
+//                        _ => (),
+//                    };
+//                };
+//            }
+//        });
+//
+//        graph_handle.join();
+//    }
 
     #[test]
     fn test_win() {
