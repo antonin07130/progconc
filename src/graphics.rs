@@ -130,7 +130,6 @@ fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Window
         window.set_title(&title).unwrap();
     }
 
-    // -----
     // update texture
     texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
         for idx in 0..(x_size * y_size) {
@@ -144,67 +143,6 @@ fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Window
         }
     }).unwrap();
 }
-//
-///// this function keeps on drawing *the same* terrain over and over again.
-//pub fn graph_loop(pterrain: Arc<Mutex<Terrain>>, nb_pers: usize) {
-//    let xsize;
-//    let ysize;
-//    {
-//        let terrain = pterrain.lock().unwrap();
-//        xsize = terrain.xsize;
-//        ysize = terrain.ysize;
-//    }
-//
-//    let sdl_context = sdl2::init().unwrap();
-//    let mut event_pump = sdl_context.event_pump()
-//        .expect("Need an event pump !");
-//    //initialize graphs
-//    let (mut canvas,
-//        mut pixels,
-//        // mut texture,
-//        mut text_creator) = initialize_windows(
-//        xsize,
-//        ysize,
-//        &sdl_context);
-//
-//    let mut texture = create_texture(&text_creator, xsize, ysize);
-//
-//    // fps computation
-//    let mut start = Instant::now();
-//    let deltat_render = Duration::from_millis(33);
-//
-//    let mut exited_count: usize = 0;
-//
-//    'running: while exited_count < nb_pers {
-//        // measure of exited count is not correct
-//
-//        //            // ********* GRAPH RELATED ********
-//        if start.elapsed().gt(&deltat_render) {
-//            //debug!("from grph exited : {}", exited_count);
-//
-//            // do not render more than 30 fps
-//            start = Instant::now();
-//            {
-//                // graph update
-//                let terrain = pterrain.lock().unwrap();
-//                update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
-//                exited_count = terrain.get_exited_cnt().clone();
-//            }
-//            canvas.set_draw_color(Color::RGB(0, 0, 0));
-//            canvas.clear();
-//            canvas.copy(&texture,
-//                        None,
-//                        None).unwrap();
-//        }
-//
-//        if check_quit(&mut event_pump){
-//            break 'running;
-//        }
-//        canvas.present();
-//    }
-//}
-//
-
 
 
 pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> JoinHandle<()> {
@@ -245,7 +183,7 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
             // ********* GRAPH RELATED ********
             if start.elapsed().gt(&deltat_render) {
                 //debug!("from grph exited : {}", exited_count);
-                //canvas.clear();
+                //
 
 
                 {
@@ -255,6 +193,7 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
                     exited_count = terrain.get_exited_cnt().clone();
                 }
                 canvas.set_draw_color(Color::RGB(0, 0, 0));
+                canvas.clear();
                 canvas.copy(&texture,
                             None,
                             None).unwrap();
@@ -309,24 +248,30 @@ pub fn graph_loop(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) {
                 // do not render more than 30 fps
                 start = Instant::now();
 
-                canvas.clear();
-                //println!("start {:?}",start.elapsed().subsec_nanos());
 
                 {
                     // graph update
                     let terrain = pterrain.lock().unwrap();
                     update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
-                    exited_count = terrain.get_exited_cnt().clone();
+                    exited_count = terrain.get_exited_cnt();
 
-                canvas.set_draw_color(Color::RGB(0, 0, 0));
-                canvas.copy(&texture,
+                    canvas.set_draw_color(Color::RGB(0, 0, 0));
+                    canvas.clear();
+
+                    canvas.copy(&texture,
                             None,
                             None).unwrap();
-                //println!("enddraw {:?}", start.elapsed().subsec_nanos());
+
+                    canvas.present();
+
+                    // drop frames if too long to draw
+                    if start.elapsed().gt(&deltat_render){
+                        start = Instant::now();
+                    }
                 }
 
             }
-            canvas.present();
+
         }
 }
 
