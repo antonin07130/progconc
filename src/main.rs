@@ -11,8 +11,11 @@ use progconc::domain::*;
 use progconc::domain::Point;
 use progconc::domain::terrain::Terrain;
 use progconc::domain::person::Person;
+
 // graphic lib wrappers
+#[cfg(feature="gui")]
 use progconc::graphics::*;
+
 // statistics lib wrapper
 use progconc::statistics::PerfMeasure;
 
@@ -26,6 +29,12 @@ use std::sync::mpsc;
 fn main() {
     // logger
     env_logger::init().unwrap();
+
+    #[cfg(feature="gui")]
+    println!("Compiled with gui feature on ☺ : turning off measure turns on rendering");
+    #[cfg(not(feature= "gui"))]
+    println!("Compiled without gui feature ☹ : measure turned on by default");
+
 
     // parse arguments
     let matches = App::new("progconc")
@@ -55,14 +64,28 @@ fn main() {
     let measure: bool = matches.is_present("measure");
 
     let nb_pers: usize = (2_usize).pow(pow_pers as u32);
+
     println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
 
-
-
-    let measures: Option<(PerfMeasure, PerfMeasure)> = match scenario {
-        0 => t1_algorithm_with_graph(nb_pers, measure),
-        2 => t3_algorithm_with_graph(nb_pers, measure),
+    // Start simulation
+    let measures: Option<(PerfMeasure, PerfMeasure)> = match (scenario, measure) {
+        (0, false) => {
+                #[cfg(feature="gui")]
+                    let res = t0_algorithm_with_graph(nb_pers);
+                #[cfg(not(feature= "gui"))]
+                    let res = t0_algorithm_perf(nb_pers);
+                res
+            },
+        (0, true) => t0_algorithm_perf(nb_pers),
+        (2, false) => {
+            #[cfg(feature = "gui")]
+                let res = t3_algorithm_with_graph(nb_pers);
+            #[cfg(not(feature= "gui"))]
+                 let res = t3_algorithm_perf(nb_pers);
+            res
+        },
+        (2, true) => t3_algorithm_perf(nb_pers),
         _ => unimplemented!(),
     };
 
@@ -77,67 +100,7 @@ fn main() {
 }
 
 
-fn t3_algorithm(nb_pers: usize, measure: bool) -> Option<(PerfMeasure, PerfMeasure)> {
-
-    // ********* INITIALIZATION ********
-
-    // Initialize the terrain and place persons in it :
-    let mut terrain: Terrain = Terrain::new_sample(XSIZE, YSIZE);
-    #[derive(Debug)]
-    let mut persons: Vec<Person> = Vec::with_capacity(nb_pers as usize);
-
-    for i in 1..nb_pers + 1 {
-        let pt: Point = terrain.get_random_free_point()
-            .expect("Not enough fee positions on the Terrain for all Persons");
-        let mut new_pers = Person::new(i * 100, pt);
-        new_pers.place_on_terrain(&mut terrain);
-        //terrain.set_pt(&new_pers.position, new_pers.id as isize); // occupy }
-        debug!("placing : {}", &new_pers);
-        persons.push(new_pers);
-    }
-    println!(" Persons in terrain : {}", terrain.count_persons_in_terrain());
-    debug!(" expected pers in terrain : {}", nb_pers);
-    assert_eq!(terrain.count_persons_in_terrain(), nb_pers);
-    debug!("persons array : {:?}", persons);
-
-
-    // measure 1 (before)
-    let measure_before: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
-
-    // ********* ALGORITHM ********
-    // start moving persons
-    while (terrain.get_exited_cnt() < nb_pers) {
-        // for each person
-        for pers in persons.as_mut_slice() {
-            if !pers.has_escaped {
-                pers.look_and_move(&mut terrain);
-            }
-        }
-        debug!("****** next turn ******", )
-    }
-
-    // measure 2
-    let measure_after: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
-
-    if let (Some(mb), Some(ma)) = (measure_before,measure_after) {
-        Some((mb, ma))
-    } else {
-        None
-    }
-
-}
-
-
-
-fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure, PerfMeasure)> {
+fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
@@ -148,20 +111,9 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
 
-    let (stop_graph_tx, stop_graph_rx) = mpsc::channel();
-
-    // ********* GRAPH RELATED ********
-    let pterrain = protected_terrain.clone();
-    let graph_handle = spawn_graph_thread(pterrain, nb_pers);//, stop_graph_rx);
-    // ********* GRAPH RELATED ********
-
 
     // measure 1 (before)
-    let measure_before: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
+    let measure_before: PerfMeasure = PerfMeasure::New();
 
     // ********* ALGORITHM ********
     // start moving persons
@@ -176,29 +128,17 @@ fn t3_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure
     }
 
     // measure 2
-    let measure_after: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
+    let measure_after: PerfMeasure = PerfMeasure::New();
 
-    stop_graph_tx.send(()); // kill graph thread
-
-    graph_handle.join().unwrap();
-
-    if let (Some(mb), Some(ma)) = (measure_before,measure_after) {
-        Some((mb, ma))
-    } else {
-        None
-    }
+    Some((measure_before, measure_after))
 }
 
 
+#[cfg(feature="gui")]
+fn t3_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 
-
-
-fn t1_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure, PerfMeasure)>  {
-
+    // ********* INITIALIZATION ********
+    // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
     let (mut terrain,
         mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
@@ -207,12 +147,41 @@ fn t1_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure
     let protected_terrain = Arc::new(Mutex::new(terrain));
 
 
-    // measure 1 (before)
-    let measure_before: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
+    // ********* GRAPH RELATED ********
+    let pterrain = protected_terrain.clone();
+    let graph_handle = spawn_graph_thread(pterrain, nb_pers);//, stop_graph_rx);
+    // ********* GRAPH RELATED ********
+
+    // ********* ALGORITHM ********
+    // start moving persons
+    'running: while protected_terrain.lock().unwrap().get_exited_cnt() < nb_pers {
+        // for each person
+        for pers in persons.as_mut_slice() {
+            if !pers.has_escaped {
+                pers.look_and_move(&mut protected_terrain.lock().unwrap());
+            }
+        }
+        debug!("****** next turn ******  {} have left the Terrain", protected_terrain.lock().unwrap().get_exited_cnt());
+    }
+
+    graph_handle.join().unwrap();
+
+    None // no measure to return
+}
+
+
+
+
+#[cfg(feature="gui")]
+fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
+
+    // ********* INITIALIZATION ********
+    let (mut terrain,
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+
+    // move Terrain to the mutex protected reference counted pointer
+    let protected_terrain = Arc::new(Mutex::new(terrain));
+
 
     // ********* THREAD DISTRIBUTION ********
     let mut person_thread_handles = Vec::with_capacity(nb_pers);
@@ -242,11 +211,66 @@ fn t1_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure
         person_thread_handles.push(handle);
     };
 
+
+    barrier.wait();
+
     // ********* GRAPH RELATED ********
     let pterrain = protected_terrain.clone();
-    let graph_handle = spawn_graph_thread(pterrain, nb_pers);//, stop_graph_rx);
+    graph_loop(pterrain, nb_pers);
     // ********* GRAPH RELATED ********
 
+
+    for handle in person_thread_handles {
+        handle.join().unwrap();
+    };
+
+
+    None // no measure to return
+}
+
+
+
+
+fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
+
+    // ********* INITIALIZATION ********
+    let (mut terrain,
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+
+    // move Terrain to the mutex protected reference counted pointer
+    let protected_terrain = Arc::new(Mutex::new(terrain));
+
+
+    // measure 1 (before)
+    let measure_before: PerfMeasure = PerfMeasure::New();
+
+    // ********* THREAD DISTRIBUTION ********
+    let mut person_thread_handles = Vec::with_capacity(nb_pers);
+    let barrier = Arc::new(Barrier::new(nb_pers + 1));
+
+    // create one thread per person
+    while let Some(mut pers) = persons.pop() {
+
+        let pterrain = protected_terrain.clone();
+        //let tx = tx.clone();
+        let c = barrier.clone();
+
+        // Threads declaration :
+        let handle = thread::spawn(move || {
+            debug!("waiting {}", pers.id);
+            c.wait();
+            debug!("go ! {}", pers.id);
+            while !pers.has_escaped {
+                { // whole terrain is blocked
+                    let mut my_terrain = pterrain.lock().unwrap();
+                    pers.look_and_move(&mut my_terrain);
+                } // locked mutex goes out of scope : terrain is availabe again
+                //thread::sleep(time::Duration::from_millis(100));
+            }
+            debug!("I escaped : {}", pers.id);
+        });
+        person_thread_handles.push(handle);
+    };
 
     barrier.wait();
 
@@ -256,22 +280,10 @@ fn t1_algorithm_with_graph(nb_pers: usize, measure: bool) -> Option<(PerfMeasure
     };
 
     // measure 2
-    let measure_after: Option<PerfMeasure> = if measure {
-        Some(PerfMeasure::New())
-    } else {
-        None
-    };
+    let measure_after: PerfMeasure = PerfMeasure::New();
 
 
-    graph_handle.join();
-
-
-    if let (Some(mb), Some(ma)) = (measure_before,measure_after) {
-        Some((mb, ma))
-    } else {
-        None
-    }
+    Some((measure_before, measure_after))
 }
-
 
 

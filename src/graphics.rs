@@ -1,4 +1,3 @@
-
 extern crate sdl2;
 extern crate rand;
 
@@ -28,7 +27,7 @@ use std::thread::JoinHandle;
 use std::sync::mpsc::Receiver;
 
 
-pub fn test_disp() {
+fn test_disp() {
 
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -73,7 +72,7 @@ pub fn test_disp() {
 }
 
 
-pub fn initialize_windows(x_size:usize, y_size:usize, sdl_context : & Sdl) -> (WindowCanvas, Vec<u8>,  TextureCreator<WindowContext>) {
+fn initialize_windows(x_size:usize, y_size:usize, sdl_context : & Sdl) -> (WindowCanvas, Vec<u8>,  TextureCreator<WindowContext>) {
 
     let num_px = sdl2::pixels::PixelFormatEnum::ARGB8888.byte_size_of_pixels(x_size * y_size);
 
@@ -98,14 +97,14 @@ pub fn initialize_windows(x_size:usize, y_size:usize, sdl_context : & Sdl) -> (W
     return (canvas, pixels, text_creator)
 }
 
-pub fn create_texture(text_creator : & TextureCreator<WindowContext>, width : usize, height : usize) -> Texture {
+fn create_texture(text_creator : & TextureCreator<WindowContext>, width : usize, height : usize) -> Texture {
         text_creator.create_texture_streaming(
             sdl2::pixels::PixelFormatEnum::ARGB8888,
             width as u32,
             height as u32).unwrap()
     }
 
-pub fn check_quit(event_pump : &mut EventPump) -> bool{
+fn check_quit(event_pump : &mut EventPump) -> bool{
     for event in event_pump.poll_iter() {
         match event {
             Event::Quit { .. } |
@@ -117,9 +116,7 @@ pub fn check_quit(event_pump : &mut EventPump) -> bool{
     false
 }
 
-
-
-pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut WindowCanvas, texture : &mut Texture) {
+fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut WindowCanvas, texture : &mut Texture) {
     let data = terrain.get_data_ref();
     let x_size = terrain.xsize;
     let y_size = terrain.ysize;
@@ -155,52 +152,66 @@ pub fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Wi
         }
     });
 }
-
-/// this function keeps on drawing *the same* terrain over and over again.
-pub fn graph_loop(terrain: &Terrain){
-
-    let data_array = terrain.get_data_ref();
-    let x_size = terrain.xsize;
-    let y_size = terrain.ysize;
-
-    let sdl_context = sdl2::init().unwrap();
-    let mut event_pump = sdl_context.event_pump().expect("My event PUMPPP!");
-
-    let (mut canvas,
-        mut pixels,
-       // mut texture,
-        mut text_creator) = initialize_windows(x_size, y_size, &sdl_context);
-
-
-
-    let mut texture = create_texture(&text_creator, x_size, y_size);
-
-
-    'running: loop {
-        for event in event_pump.poll_iter() {
-            match event {
-                Event::Quit { .. } |
-                Event::KeyDown { keycode: Some(Keycode::Escape), .. } => break 'running,
-                _ => {}
-            }
-        }
-
-        {
-            update_texture(&mut pixels, terrain, &mut canvas, &mut texture);
-        }
-
-
-        canvas.copy(&texture,
-                    None,
-                    None).unwrap();
-
-        canvas.set_draw_color(Color::RGB(0, 0, 0));
-        //canvas.clear();
-        canvas.present();
-    }
-
-}
-
+//
+///// this function keeps on drawing *the same* terrain over and over again.
+//pub fn graph_loop(pterrain: Arc<Mutex<Terrain>>, nb_pers: usize) {
+//    let xsize;
+//    let ysize;
+//    {
+//        let terrain = pterrain.lock().unwrap();
+//        xsize = terrain.xsize;
+//        ysize = terrain.ysize;
+//    }
+//
+//    let sdl_context = sdl2::init().unwrap();
+//    let mut event_pump = sdl_context.event_pump()
+//        .expect("Need an event pump !");
+//    //initialize graphs
+//    let (mut canvas,
+//        mut pixels,
+//        // mut texture,
+//        mut text_creator) = initialize_windows(
+//        xsize,
+//        ysize,
+//        &sdl_context);
+//
+//    let mut texture = create_texture(&text_creator, xsize, ysize);
+//
+//    // fps computation
+//    let mut start = Instant::now();
+//    let deltat_render = Duration::from_millis(33);
+//
+//    let mut exited_count: usize = 0;
+//
+//    'running: while exited_count < nb_pers {
+//        // measure of exited count is not correct
+//
+//        //            // ********* GRAPH RELATED ********
+//        if start.elapsed().gt(&deltat_render) {
+//            //debug!("from grph exited : {}", exited_count);
+//
+//            // do not render more than 30 fps
+//            start = Instant::now();
+//            {
+//                // graph update
+//                let terrain = pterrain.lock().unwrap();
+//                update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
+//                exited_count = terrain.get_exited_cnt().clone();
+//            }
+//            canvas.set_draw_color(Color::RGB(0, 0, 0));
+//            canvas.clear();
+//            canvas.copy(&texture,
+//                        None,
+//                        None).unwrap();
+//        }
+//
+//        if check_quit(&mut event_pump){
+//            break 'running;
+//        }
+//        canvas.present();
+//    }
+//}
+//
 
 
 
@@ -239,12 +250,12 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
 
         'running: while exited_count < nb_pers { // measure of exited count is not correct
 
-            //            // ********* GRAPH RELATED ********
+            // ********* GRAPH RELATED ********
             if start.elapsed().gt(&deltat_render) {
                 //debug!("from grph exited : {}", exited_count);
+                //canvas.clear();
 
-                // do not render more than 30 fps
-                start = Instant::now();
+
                 {
                     // graph update
                     let terrain = pterrain.lock().unwrap();
@@ -252,22 +263,83 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
                     exited_count = terrain.get_exited_cnt().clone();
                 }
                 canvas.set_draw_color(Color::RGB(0, 0, 0));
-                canvas.clear();
                 canvas.copy(&texture,
                             None,
                             None).unwrap();
+                // do not render more than 30 fps
+                start = Instant::now();
             }
             canvas.present();
 
-// bug opened at rust sdl github : https://github.com/Rust-SDL2/rust-sdl2/issues/716
-//            if check_quit(&mut event_pump){
-//                break 'running;
-//            }
         }
     });
 
     graph_handle
 }
+
+
+
+
+pub fn graph_loop(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) {
+
+        let xsize;
+        let ysize;
+        {
+            let terrain = pterrain.lock().unwrap();
+            xsize = terrain.xsize;
+            ysize = terrain.ysize;
+        }
+
+        let sdl_context = sdl2::init().unwrap();
+        let mut event_pump = sdl_context.event_pump()
+            .expect("Need an event pump !");
+        //initialize graphs
+        let (mut canvas,
+            mut pixels,
+            // mut texture,
+            mut text_creator) = initialize_windows(
+            xsize,
+            ysize,
+            &sdl_context);
+
+        let mut texture = create_texture(&text_creator, xsize, ysize);
+
+        // fps computation
+        let mut start = Instant::now();
+        let deltat_render = Duration::from_millis(33);
+
+        let mut exited_count: usize = 0;
+
+        'running: while exited_count < nb_pers { // measure of exited count is not correct
+
+            // ********* GRAPH RELATED ********
+            if start.elapsed().gt(&deltat_render) {
+                // do not render more than 30 fps
+                start = Instant::now();
+
+                canvas.clear();
+                //println!("start {:?}",start.elapsed().subsec_nanos());
+
+                {
+                    // graph update
+                    let terrain = pterrain.lock().unwrap();
+                    update_texture(&mut pixels, &terrain, &mut canvas, &mut texture);
+                    exited_count = terrain.get_exited_cnt().clone();
+
+                canvas.set_draw_color(Color::RGB(0, 0, 0));
+                canvas.copy(&texture,
+                            None,
+                            None).unwrap();
+                //println!("enddraw {:?}", start.elapsed().subsec_nanos());
+                }
+
+            }
+            canvas.present();
+        }
+}
+
+
+
 
 
 

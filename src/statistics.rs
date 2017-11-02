@@ -41,3 +41,35 @@ extern {
 }
 
 
+
+#[cfg(test)]
+mod tests {
+    use statistics;
+
+
+    #[test]
+    fn test_stats() {
+        let new_measure = statistics::PerfMeasure::New();
+        println!("Testing memory usage measure {}MB", new_measure.get_maxrss_as_MB());
+        println!("Testing system time measure {:?}", new_measure.stime);
+        println!("Testing user time measure {:?}", new_measure.utime);
+    }
+
+
+    #[test]
+    fn test_stats_2_pts() {
+        let measure_1 = statistics::PerfMeasure::New();
+
+        let mut j = 123456;
+        for i in 1..100 {
+            j = j+i;
+        }
+        println!("dummy computation result : {}", j);
+
+        let measure_2 = statistics::PerfMeasure::New();
+
+        assert!(measure_2.stime.gt(&measure_1.stime));
+        assert!(measure_2.utime.gt(&measure_1.utime));
+        assert!(measure_2.get_maxrss_as_kB() > measure_1.get_maxrss_as_kB());
+    }
+}

@@ -2,8 +2,10 @@
 extern crate log;
 
 pub mod domain;
-pub mod graphics;
 pub mod statistics;
+#[cfg(feature="gui")]
+pub mod graphics;
+
 
 #[cfg(test)]
 mod tests {
@@ -11,16 +13,9 @@ mod tests {
     use domain::Point;
     use domain::terrain::Terrain;
     use domain::person::Person;
-    use graphics;
-    use statistics;
 
-    #[test]
-    fn test_stats() {
-        let new_measure = statistics::PerfMeasure::New();
-        println!("Testing memory usage measure {}MB", new_measure.get_maxrss_as_MB());
-        println!("Testing system time measure {:?}", new_measure.stime);
-        println!("Testing user time measure {:?}", new_measure.utime);
-    }
+
+
 
     #[test]
     fn declare_small_terrain() {
