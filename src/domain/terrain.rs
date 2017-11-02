@@ -6,8 +6,7 @@ use super::NBEXIT;
 use super::Point;
 
 use std::fmt; // formatting for console display
-use self::rand::{Rng, SeedableRng, StdRng};
-use std::vec;
+use self::rand::{Rng, SeedableRng};
 
 // *******
 // TERRAIN
@@ -39,17 +38,13 @@ impl Terrain {
     /// if YSIZE < 4 or XSIZE < 11 this function fails
     pub fn new_sample(xsize: usize, ysize:usize) -> Terrain {
         let mut terr = Terrain::new(xsize, ysize);
-        let large_lb = Point{x: XSIZE as isize / 10 , y: 1};
-        let lagre_rt = Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2};
-        let long_lb  = Point{x: XSIZE as isize / 10 * 3 , y: YSIZE as isize / 5};
-        let long_rt  = Point{x: XSIZE as isize / 10 * 7 , y: YSIZE as isize / 5 * 2};
+        let large_ll = Point{x: XSIZE as isize / 10 , y: 1};
+        let large_ur = Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2};
+        let long_ll  = Point{x: XSIZE as isize / 10 * 2 + 2 , y: YSIZE as isize / 5};
+        let long_ur  = Point{x: XSIZE as isize / 10 * 9 -  1 , y: YSIZE as isize / 5 + 1};
         //println!("large_lb {},  lagre_rt {} ; long_lb {}, long_rt {}", large_lb, lagre_rt, long_lb, long_rt); // debug
-        terr.add_obstacle( // large obstacle (takes lots of Y)
-            Point{x: XSIZE as isize / 10 , y: 1},
-            Point{x: XSIZE as isize / 10 * 2 , y: YSIZE as isize - 2});
-        terr.add_obstacle( // long obstacle (takes lot of X)
-            Point{x: XSIZE as isize / 10 * 2 + 2 , y: YSIZE as isize / 5},
-            Point{x: XSIZE as isize / 10 * 9 -  1 , y: YSIZE as isize / 5 + 1});
+        terr.add_obstacle(large_ll, large_ur); // large obstacle (takes lots of Y)
+        terr.add_obstacle(long_ll, long_ur); // long obstacle (takes lot of X)
         terr
     }
 
@@ -192,12 +187,12 @@ impl Terrain {
 
 impl fmt::Display for Terrain {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Terrain {{\n");
+        write!(f, "Terrain {{\n").unwrap();
         for y in (0..YSIZE).rev() {
             for x in 0..XSIZE {
-                write!(f, "({},{})={} \t", x, y, self.get_pt_val(&Point{x : x as isize, y : y as isize}));
+                write!(f, "({},{})={} \t", x, y, self.get_pt_val(&Point{x : x as isize, y : y as isize})).unwrap();
             }
-            write!(f, "\n");
+            write!(f, "\n").unwrap();
         }
         write!(f, "}}\n")
     }

@@ -12,7 +12,7 @@ pub struct PerfMeasure {
 }
 
 impl PerfMeasure {
-    pub fn New() -> PerfMeasure {
+    pub fn new() -> PerfMeasure {
         let measure: (libc::timeval, libc::timeval, i64) = unsafe {
             let mut out: libc::rusage = mem::zeroed();
             libc::getrusage(libc::RUSAGE_SELF, &mut out);
@@ -27,11 +27,11 @@ impl PerfMeasure {
         PerfMeasure { utime, stime, maxrss: measure.2, clock_t }
     }
 
-    pub fn get_maxrss_as_MB(&self) -> f32 {
-        self.get_maxrss_as_kB() / 1024.
+    pub fn get_maxrss_as_megabytes(&self) -> f32 {
+        self.get_maxrss_as_kilobytes() / 1024.
     }
 
-    pub fn get_maxrss_as_kB(&self) -> f32 {
+    pub fn get_maxrss_as_kilobytes(&self) -> f32 {
         self.maxrss as f32 / 1024.
     }
 }
@@ -49,8 +49,8 @@ mod tests {
 
     #[test]
     fn test_stats() {
-        let new_measure = statistics::PerfMeasure::New();
-        println!("Testing memory usage measure {}MB", new_measure.get_maxrss_as_MB());
+        let new_measure = statistics::PerfMeasure::new();
+        println!("Testing memory usage measure {}MB", new_measure.get_maxrss_as_megabytes());
         println!("Testing system time measure {:?}", new_measure.stime);
         println!("Testing user time measure {:?}", new_measure.utime);
     }
@@ -58,7 +58,7 @@ mod tests {
 
     #[test]
     fn test_stats_2_pts() {
-        let measure_1 = statistics::PerfMeasure::New();
+        let measure_1 = statistics::PerfMeasure::new();
 
         let mut j = 123456;
         for i in 1..100 {
@@ -66,10 +66,10 @@ mod tests {
         }
         println!("dummy computation result : {}", j);
 
-        let measure_2 = statistics::PerfMeasure::New();
+        let measure_2 = statistics::PerfMeasure::new();
 
         assert!(measure_2.stime.gt(&measure_1.stime));
         assert!(measure_2.utime.gt(&measure_1.utime));
-        assert!(measure_2.get_maxrss_as_kB() > measure_1.get_maxrss_as_kB());
+        assert!(measure_2.get_maxrss_as_kilobytes() > measure_1.get_maxrss_as_kilobytes());
     }
 }

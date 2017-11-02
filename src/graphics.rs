@@ -2,29 +2,21 @@ extern crate sdl2;
 extern crate rand;
 
 use self::sdl2::Sdl;
-use self::sdl2::rect::{Point, Rect};
 use self::sdl2::pixels::Color;
 use self::sdl2::EventPump;
 use self::sdl2::event::Event;
-use self::sdl2::mouse::MouseButton;
 use self::sdl2::keyboard::Keycode;
-use self::sdl2::VideoSubsystem;
 use self::sdl2::video::{Window, WindowContext};
-use self::sdl2::render::{Canvas, Texture, TextureCreator, WindowCanvas};
+use self::sdl2::render::{Texture, TextureCreator, WindowCanvas};
 // use game_of_life::{SQUARE_SIZE, PLAYGROUND_WIDTH, PLAYGROUND_HEIGHT};
 
-use ::domain::Point as myPoint;
 use ::domain::terrain::Terrain;
-use ::domain::person::Person;
 
 use std::time::{Duration, Instant};
-
-use self::rand::{Rng, SeedableRng, StdRng};
 
 use std::sync::{Mutex, Arc};
 use std::thread;
 use std::thread::JoinHandle;
-use std::sync::mpsc::Receiver;
 
 
 fn test_disp() {
@@ -45,10 +37,10 @@ fn test_disp() {
     let now = Instant::now();
     while now.elapsed().as_secs() < 1_u64 { // displays the window for 1 second
 
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    //let mut event_pump = sdl_context.event_pump().unwrap();
         {
             // Update the window title.
-            let mut window = canvas.window_mut();
+            let window = canvas.window_mut();
 
             let position = window.position();
             let size = window.size();
@@ -76,7 +68,7 @@ fn initialize_windows(x_size:usize, y_size:usize, sdl_context : & Sdl) -> (Windo
 
     let num_px = sdl2::pixels::PixelFormatEnum::ARGB8888.byte_size_of_pixels(x_size * y_size);
 
-    let mut pixels : Vec<u8> = vec![0; num_px];
+    let pixels : Vec<u8> = vec![0; num_px];
 
     let video_subsystem = sdl_context.video().unwrap();
 
@@ -87,12 +79,12 @@ fn initialize_windows(x_size:usize, y_size:usize, sdl_context : & Sdl) -> (Windo
         .build()
         .unwrap();
 
-    let mut canvas: WindowCanvas = window.into_canvas().accelerated().build().unwrap();
+    let canvas: WindowCanvas = window.into_canvas().accelerated().build().unwrap();
     debug!("Using SDL_Renderer \"{}\"", canvas.info().name);
     //let mut tick = 0;
     //let mut event_pump = sdl_context.event_pump().unwrap();
 
-    let mut text_creator: TextureCreator<WindowContext> = canvas.texture_creator();
+    let text_creator: TextureCreator<WindowContext> = canvas.texture_creator();
 
     return (canvas, pixels, text_creator)
 }
@@ -125,7 +117,7 @@ fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Window
 
     {
         // Update the window title.
-        let mut window = canvas.window_mut();
+        let window = canvas.window_mut();
 
         let position = window.position();
         let size = window.size();
@@ -140,7 +132,7 @@ fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Window
 
     // -----
     // update texture
-    texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+    texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
         for idx in 0..(x_size * y_size) {
             let offset = idx * 4;
             unsafe{
@@ -150,7 +142,7 @@ fn update_texture(pixels :&mut Vec<u8>, terrain : &Terrain, canvas : &mut Window
             buffer[offset + 3] = 255_u8; // a (opaque)
             }
         }
-    });
+    }).unwrap();
 }
 //
 ///// this function keeps on drawing *the same* terrain over and over again.
@@ -229,13 +221,13 @@ pub fn spawn_graph_thread(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) -> Jo
         }
 
         let sdl_context = sdl2::init().unwrap();
-        let mut event_pump = sdl_context.event_pump()
-            .expect("Need an event pump !");
+        //let event_pump = sdl_context.event_pump()
+        //    .expect("Need an event pump !");
         //initialize graphs
         let (mut canvas,
             mut pixels,
             // mut texture,
-            mut text_creator) = initialize_windows(
+            text_creator) = initialize_windows(
             xsize,
             ysize,
             &sdl_context);
@@ -291,13 +283,13 @@ pub fn graph_loop(pterrain : Arc<Mutex<Terrain>>, nb_pers : usize) {
         }
 
         let sdl_context = sdl2::init().unwrap();
-        let mut event_pump = sdl_context.event_pump()
-            .expect("Need an event pump !");
+        //let event_pump = sdl_context.event_pump()
+        //    .expect("Need an event pump !");
         //initialize graphs
         let (mut canvas,
             mut pixels,
             // mut texture,
-            mut text_creator) = initialize_windows(
+            text_creator) = initialize_windows(
             xsize,
             ysize,
             &sdl_context);

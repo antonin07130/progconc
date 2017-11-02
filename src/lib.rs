@@ -14,9 +14,6 @@ mod tests {
     use domain::terrain::Terrain;
     use domain::person::Person;
 
-
-
-
     #[test]
     fn declare_small_terrain() {
         let terrain: Terrain = Terrain::new(XSIZE, YSIZE);//[[0; YSIZE]; XSIZE];

@@ -8,9 +8,6 @@ extern crate env_logger;
 use clap::{Arg, App};
 // domain objects
 use progconc::domain::*;
-use progconc::domain::Point;
-use progconc::domain::terrain::Terrain;
-use progconc::domain::person::Person;
 
 // graphic lib wrappers
 #[cfg(feature="gui")]
@@ -22,8 +19,6 @@ use progconc::statistics::PerfMeasure;
 // thread and sync primitives
 use std::sync::{Mutex, Arc, Barrier};
 use std::thread;
-use std::time;
-use std::sync::mpsc;
 
 
 fn main() {
@@ -90,9 +85,9 @@ fn main() {
     };
 
     if let Some((mb, ma)) = measures {
-        println!("Memory before : {}MB", mb.get_maxrss_as_MB());
-        println!("Memory after : {}MB", ma.get_maxrss_as_MB());
-        println!("Memory usage : {}MB", ma.get_maxrss_as_MB() - mb.get_maxrss_as_MB());
+        println!("Memory before : {}MB", mb.get_maxrss_as_megabytes());
+        println!("Memory after : {}MB", ma.get_maxrss_as_megabytes());
+        println!("Memory usage : {}MB", ma.get_maxrss_as_megabytes() - mb.get_maxrss_as_megabytes());
         println!("Clock before : {}", mb.clock_t);
         println!("Clock after : {}", ma.clock_t);
         println!("Clock ticks : {}", ma.clock_t - mb.clock_t);
@@ -105,15 +100,15 @@ fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
-    let (mut terrain,
-        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+    let (terrain, mut persons) =
+        initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
 
 
     // measure 1 (before)
-    let measure_before: PerfMeasure = PerfMeasure::New();
+    let measure_before: PerfMeasure = PerfMeasure::new();
 
     // ********* ALGORITHM ********
     // start moving persons
@@ -128,7 +123,7 @@ fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
     }
 
     // measure 2
-    let measure_after: PerfMeasure = PerfMeasure::New();
+    let measure_after: PerfMeasure = PerfMeasure::new();
 
     Some((measure_before, measure_after))
 }
@@ -140,7 +135,7 @@ fn t3_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
-    let (mut terrain,
+    let ( terrain,
         mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
@@ -176,7 +171,7 @@ fn t3_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
 
     // ********* INITIALIZATION ********
-    let (mut terrain,
+    let ( terrain,
         mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
@@ -234,7 +229,7 @@ fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
 
     // ********* INITIALIZATION ********
-    let (mut terrain,
+    let (terrain,
         mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
@@ -242,7 +237,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
 
 
     // measure 1 (before)
-    let measure_before: PerfMeasure = PerfMeasure::New();
+    let measure_before: PerfMeasure = PerfMeasure::new();
 
     // ********* THREAD DISTRIBUTION ********
     let mut person_thread_handles = Vec::with_capacity(nb_pers);
@@ -280,7 +275,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
     };
 
     // measure 2
-    let measure_after: PerfMeasure = PerfMeasure::New();
+    let measure_after: PerfMeasure = PerfMeasure::new();
 
 
     Some((measure_before, measure_after))
