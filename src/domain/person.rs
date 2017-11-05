@@ -48,7 +48,7 @@ impl Person {
                 .unwrap_or(Equal)
             }
         );
-        //println!("debug sort :{:?}",moves_and_dist); // debug
+        debug!("debug sort :{:?}",moves_and_dist); // debug
         match moves_and_dist.first() {
             Some(&(ref point, _)) => Point{x:point.x, y:point.y},
             None => Point{x: self.position.x, y: self.position.y}, // todo : stay where you are for now...
@@ -70,7 +70,7 @@ impl Person {
         if self.has_escaped == true {
         } else if terrain.get_exit_points().contains(new_point) {
             terrain.move_src_to_dst(&self.position, new_point); // should just increase exit counts
-            //println!("I escaped : {}", self.id);
+            trace!("I escaped : {}", self.id);
             self.has_escaped = true;
             self.remove_from_terrain(terrain);
         } else {
@@ -97,10 +97,10 @@ impl Person {
 
         // move to the best point
         if good_point != self.position {
-            //println!("Moving to : {}", good_point);
+            trace!("Moving to : {}", good_point);
             self.move_to(terrain, &good_point);
         } else {
-            //println!("I, {}  am staying here : {}", self.id, good_point);
+            trace!("I, {}  am staying here : {}", self.id, good_point);
         }
     }
 }
