@@ -187,12 +187,12 @@ impl Terrain {
 
 impl fmt::Display for Terrain {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        write!(f, "Terrain {{\n").unwrap();
+        write!(f, "Terrain {{\n")?;
         for y in (0..YSIZE).rev() {
             for x in 0..XSIZE {
-                write!(f, "({},{})={} \t", x, y, self.get_pt_val(&Point{x : x as isize, y : y as isize})).unwrap();
+                write!(f, "({},{})={} \t", x, y, self.get_pt_val(&Point{x : x as isize, y : y as isize}))?;
             }
-            write!(f, "\n").unwrap();
+            write!(f, "\n")?;
         }
         write!(f, "}}\n")
     }
