@@ -62,7 +62,7 @@ pub fn initialize_terrain_and_users(nb_pers: usize, xsize: usize, ysize: usize) 
         debug!("placing : {}", &new_pers);
         persons.push(new_pers);
     }
-    println!(" pers in terrain : {}", terrain.count_persons_in_terrain());
+    info!(" pers in terrain : {}", terrain.count_persons_in_terrain());
     debug!(" expected pers in terrain : {}", nb_pers);
     assert_eq!(terrain.count_persons_in_terrain(), nb_pers);
     debug!("persons array : {:?}", persons);

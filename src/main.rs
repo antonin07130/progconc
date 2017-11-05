@@ -20,7 +20,8 @@ use clap::{Arg, App};
 // thread and sync primitives
 use std::sync::{Mutex, Arc, Barrier};
 use std::thread;
-
+use std::io::Write;
+use std::io;
 
 fn main() {
     // logger
@@ -61,19 +62,25 @@ fn main() {
 
     let nb_pers: usize = (2_usize).pow(pow_pers as u32);
 
+    println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
     if measure {
         let mut measures: Vec<PerfResult> = Vec::with_capacity(5);
-        for _ in 0..5 {
+        for i in 0..5 {
+            print!("\rSimulation {}/5", i + 1);
+            io::stdout().flush().unwrap();
+
             let measure = do_one_simulation(nb_pers, pow_pers, scenario, measure)
                 .expect("No measure returned by this simulation : something went wrong");
             info!("Measure result : \n {}", measure);
             measures.push(measure);
         }
+        println!();
+        // compute mean measure and display it
         let medians = PerfResult::take_3_median_results(measures.as_slice());
         debug!("Removed outliers, kept :\n{:?}", medians);
         let mean = PerfResult::compute_mean_result(&medians);
-        println!("Mean result for this simulation \n {:?} \n", mean);
+        println!("Mean result for this simulation \n {} \n", mean);
     } else {
         do_one_simulation(nb_pers, pow_pers, scenario, measure);
     }
@@ -81,9 +88,8 @@ fn main() {
 
 
 fn do_one_simulation(nb_pers: usize, pow_pers: usize, scenario: usize, measure: bool) -> Option<PerfResult> {
-    println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
-    // Start simulation
+    // Select simulation to start according to option and compilaiton options
     let measures: Option<(PerfMeasure, PerfMeasure)> = match (scenario, measure) {
         (0, false) => {
             // algo 0, no measure : use gui if compiled
@@ -106,7 +112,7 @@ fn do_one_simulation(nb_pers: usize, pow_pers: usize, scenario: usize, measure: 
         _ => unimplemented!(),
     };
 
-
+    // returns measurements from the simulation as a PerfResult
     if let Some((mb, ma)) = measures {
         Some(ma.minus(&mb))
     } else {
@@ -116,6 +122,7 @@ fn do_one_simulation(nb_pers: usize, pow_pers: usize, scenario: usize, measure: 
 
 
 fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
+    info!("Initialization");
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
@@ -127,6 +134,7 @@ fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 
 
     // measure 1 (before)
+    info!("Initialization done, measure starts");
     let measure_before: PerfMeasure = PerfMeasure::new();
 
     // ********* ALGORITHM ********
@@ -143,6 +151,7 @@ fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 
     // measure 2
     let measure_after: PerfMeasure = PerfMeasure::new();
+    info!("End of algorithm, measure stops");
 
     Some((measure_before, measure_after))
 }
@@ -240,7 +249,7 @@ fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 
 
 fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
-    println!("Initialization");
+    info!("Initialization");
     // ********* INITIALIZATION ********
     let (terrain,
         mut persons) = initialize_terrain_and_users(nb_pers, XSIZE, YSIZE);
@@ -249,7 +258,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
     let protected_terrain = Arc::new(Mutex::new(terrain));
 
 
-    println!("Initialization done, measure starts");
+    info!("Initialization done, measure starts");
     // measure 1 (before)
     let measure_before: PerfMeasure = PerfMeasure::new();
 
@@ -290,7 +299,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 
     // measure 2
     let measure_after: PerfMeasure = PerfMeasure::new();
-    println!("End of algorithm, measure stops");
+    info!("End of algorithm, measure stops");
 
 
     Some((measure_before, measure_after))
