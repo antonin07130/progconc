@@ -4,17 +4,18 @@ extern crate clap;
 extern crate log;
 extern crate env_logger;
 
-// arguments parsing
-use clap::{Arg, App};
 // domain objects
 use progconc::domain::*;
 
 // graphic lib wrappers
-#[cfg(feature="gui")]
+#[cfg(feature = "gui")]
 use progconc::graphics::*;
 
 // statistics lib wrapper
-use progconc::statistics::PerfMeasure;
+use progconc::statistics::{PerfMeasure, PerfResult};
+
+// arguments parsing
+use clap::{Arg, App};
 
 // thread and sync primitives
 use std::sync::{Mutex, Arc, Barrier};
@@ -25,9 +26,9 @@ fn main() {
     // logger
     env_logger::init().unwrap();
 
-    #[cfg(feature="gui")]
+    #[cfg(feature = "gui")]
     println!("Compiled with gui feature on ☺ : turning off measure turns on rendering");
-    #[cfg(not(feature= "gui"))]
+    #[cfg(not(feature = "gui"))]
     println!("Compiled without gui feature ☹ : measure turned on by default");
 
 
@@ -60,48 +61,66 @@ fn main() {
 
     let nb_pers: usize = (2_usize).pow(pow_pers as u32);
 
-    println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
+    if measure {
+        let mut measures: Vec<PerfResult> = Vec::with_capacity(5);
+        for _ in 0..5 {
+            let measure = do_one_simulation(nb_pers, pow_pers, scenario, measure)
+                .expect("No measure returned by this simulation : something went wrong");
+            info!("Measure result : \n {}", measure);
+            measures.push(measure);
+        }
+        let medians = PerfResult::take_3_median_results(measures.as_slice());
+        debug!("Removed outliers, kept :\n{:?}", medians);
+        let mean = PerfResult::compute_mean_result(&medians);
+        println!("Mean result for this simulation \n {:?} \n", mean);
+    } else {
+        do_one_simulation(nb_pers, pow_pers, scenario, measure);
+    }
+}
+
+
+fn do_one_simulation(nb_pers: usize, pow_pers: usize, scenario: usize, measure: bool) -> Option<PerfResult> {
+    println!("Start simulation with \n {{ nb_pers = {} (2^{}), scenario = {}, measure = {} }}", nb_pers, pow_pers, scenario, measure);
 
     // Start simulation
     let measures: Option<(PerfMeasure, PerfMeasure)> = match (scenario, measure) {
         (0, false) => {
-                #[cfg(feature="gui")]
-                    let res = t0_algorithm_with_graph(nb_pers);
-                #[cfg(not(feature= "gui"))]
-                    let res = t0_algorithm_perf(nb_pers);
-                res
-            },
+            // algo 0, no measure : use gui if compiled
+            #[cfg(feature = "gui")]
+            let res = t0_algorithm_with_graph(nb_pers);
+            #[cfg(not(feature = "gui"))]
+            let res = t0_algorithm_perf(nb_pers);
+            res
+        }
         (0, true) => t0_algorithm_perf(nb_pers),
         (2, false) => {
+            // algo 2, no measure : use gui if compiled
             #[cfg(feature = "gui")]
-                let res = t3_algorithm_with_graph(nb_pers);
-            #[cfg(not(feature= "gui"))]
-                 let res = t3_algorithm_perf(nb_pers);
+            let res = t3_algorithm_with_graph(nb_pers);
+            #[cfg(not(feature = "gui"))]
+            let res = t3_algorithm_perf(nb_pers);
             res
-        },
+        }
         (2, true) => t3_algorithm_perf(nb_pers),
         _ => unimplemented!(),
     };
 
+
     if let Some((mb, ma)) = measures {
-        println!("Memory before : {}MB", mb.get_maxrss_as_megabytes());
-        println!("Memory after : {}MB", ma.get_maxrss_as_megabytes());
-        println!("Memory usage : {}MB", ma.get_maxrss_as_megabytes() - mb.get_maxrss_as_megabytes());
-        println!("Clock before : {}", mb.clock_t);
-        println!("Clock after : {}", ma.clock_t);
-        println!("Clock ticks : {}", ma.clock_t - mb.clock_t);
+        Some(ma.minus(&mb))
+    } else {
+        None
     }
 }
 
 
 fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
-
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
     let (terrain, mut persons) =
-        initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+        initialize_terrain_and_users(nb_pers, XSIZE, YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
@@ -129,14 +148,13 @@ fn t3_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
 }
 
 
-#[cfg(feature="gui")]
+#[cfg(feature = "gui")]
 fn t3_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
-
     // ********* INITIALIZATION ********
     // Initialize the terrain and place persons in it :
     // ********* INITIALIZATION ********
-    let ( terrain,
-        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+    let (terrain,
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE, YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
@@ -165,14 +183,11 @@ fn t3_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 }
 
 
-
-
-#[cfg(feature="gui")]
-fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
-
+#[cfg(feature = "gui")]
+fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
     // ********* INITIALIZATION ********
-    let ( terrain,
-        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+    let (terrain,
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE, YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
@@ -184,7 +199,6 @@ fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 
     // create one thread per person
     while let Some(mut pers) = persons.pop() {
-
         let pterrain = protected_terrain.clone();
         //let tx = tx.clone();
         let c = barrier.clone();
@@ -195,7 +209,8 @@ fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
             c.wait();
             debug!("go ! {}", pers.id);
             while !pers.has_escaped {
-                { // whole terrain is blocked
+                {
+                    // whole terrain is blocked
                     let mut my_terrain = pterrain.lock().unwrap();
                     pers.look_and_move(&mut my_terrain);
                 } // locked mutex goes out of scope : terrain is availabe again
@@ -224,18 +239,17 @@ fn t0_algorithm_with_graph(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>
 }
 
 
-
-
-fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
-
+fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)> {
+    println!("Initialization");
     // ********* INITIALIZATION ********
     let (terrain,
-        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE,YSIZE);
+        mut persons) = initialize_terrain_and_users(nb_pers, XSIZE, YSIZE);
 
     // move Terrain to the mutex protected reference counted pointer
     let protected_terrain = Arc::new(Mutex::new(terrain));
 
 
+    println!("Initialization done, measure starts");
     // measure 1 (before)
     let measure_before: PerfMeasure = PerfMeasure::new();
 
@@ -245,7 +259,6 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
 
     // create one thread per person
     while let Some(mut pers) = persons.pop() {
-
         let pterrain = protected_terrain.clone();
         //let tx = tx.clone();
         let c = barrier.clone();
@@ -256,7 +269,8 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
             c.wait();
             debug!("go ! {}", pers.id);
             while !pers.has_escaped {
-                { // whole terrain is blocked
+                {
+                    // whole terrain is blocked
                     let mut my_terrain = pterrain.lock().unwrap();
                     pers.look_and_move(&mut my_terrain);
                 } // locked mutex goes out of scope : terrain is availabe again
@@ -267,7 +281,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
         person_thread_handles.push(handle);
     };
 
-    barrier.wait();
+    barrier.wait(); // wait for everybody to be placed to start moving
 
 
     for handle in person_thread_handles {
@@ -276,6 +290,7 @@ fn t0_algorithm_perf(nb_pers: usize) -> Option<(PerfMeasure, PerfMeasure)>  {
 
     // measure 2
     let measure_after: PerfMeasure = PerfMeasure::new();
+    println!("End of algorithm, measure stops");
 
 
     Some((measure_before, measure_after))
