@@ -30,7 +30,15 @@ sudo apt-get install libsdl2-dev
 ```bash
 cargo test --package progconc --lib tests
 ```
-# Run main program (dev mode, using `cargo`). 
+
+# Build project
+
+```bash
+cargo build --release --features="gui"
+```
+
+You may omit the `--features="gui"` part of this command if you do not have sdl2, this will produce a binary without gui functions, only for measurement purposes.
+
 
 ## Usage
 
@@ -39,6 +47,11 @@ You can get the most recent usage description by running
 ```bash
 cargo run -- --help
 ```
+
+As of `v1.0.0` these are the available options : 
+ - Scenario 0 => 1 thread per person,
+ - Scenario 1 => unimplemented,
+ - Scenario 2 => 1 thread for the whole program (sequential).
 
 ```man
 USAGE:
@@ -56,7 +69,12 @@ OPTIONS:
 
 ## Examples
 
-### Mono threaded version with few users
+### Mono threaded version with few persons for measures (`-m`)
 ```bash
-cargo run -- -p2 -t2 -m
+progconc -p2 -t2 -m
+```
+
+### Multi threaded version with some persons with gui (no `-m`)
+```bash
+progconc -p6 -t0
 ```
